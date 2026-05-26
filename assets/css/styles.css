@@ -76,49 +76,6 @@ svg {
   margin: 0 auto;
 }
 
-.onboarding {
-  min-height: 100vh;
-  display: none;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 34px 20px 24px;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 16%, rgba(191, 202, 99, 0.36), transparent 28%),
-    linear-gradient(145deg, #fffdf7 0%, #edf4dd 100%);
-}
-
-.onboarding.is-active {
-  display: flex;
-}
-
-.brand-mark {
-  width: 72px;
-  height: 72px;
-  display: grid;
-  place-items: center;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.brand-mark svg {
-  width: 58px;
-  height: 58px;
-  stroke: none;
-}
-
-.onboarding-track {
-  display: flex;
-  transition: transform 0.36s ease;
-}
-
-.onboarding-card {
-  flex: 0 0 100%;
-  padding-right: 18px;
-}
-
 .eyebrow,
 .kicker {
   display: block;
@@ -128,50 +85,6 @@ svg {
   text-transform: uppercase;
   letter-spacing: 0;
   margin: 0 0 8px;
-}
-
-.onboarding-card h1,
-.onboarding-card h2 {
-  margin: 0;
-  font-size: clamp(2.45rem, 10vw, 4.4rem);
-  line-height: 0.98;
-  letter-spacing: 0;
-}
-
-.onboarding-card h2 {
-  font-size: clamp(2rem, 8vw, 3.7rem);
-}
-
-.onboarding-card p {
-  color: var(--muted);
-  max-width: 620px;
-  font-size: 1.08rem;
-  line-height: 1.55;
-}
-
-.onboarding-controls {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.dots {
-  display: flex;
-  gap: 8px;
-}
-
-.dots button {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  border: 0;
-  background: #c6d0b2;
-}
-
-.dots button.active {
-  width: 30px;
-  background: var(--green);
 }
 
 .btn,

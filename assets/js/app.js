@@ -13,7 +13,6 @@ const STATUS_COLORS = {
 };
 
 const state = {
-  onboardingIndex: 0,
   activeView: "home",
   activeChart: "rumination",
   offline: false,
@@ -28,6 +27,7 @@ const state = {
   map: null,
   markersLayer: null,
   mapReady: false,
+  telemetryTimer: null,
   ...loadSavedState()
 };
 
@@ -35,7 +35,7 @@ const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const baseData = window.VITALBOV_DATA;
 const appData = {
-  farm: baseData.farm,
+  farm: state.farm || structuredClone(baseData.farm),
   animals: state.animals || structuredClone(baseData.animals),
   notices: state.notices || structuredClone(baseData.notices),
   products: structuredClone(baseData.products),
@@ -43,16 +43,14 @@ const appData = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  createOnboardingDots();
   bindEvents();
   renderAll();
+  openView("home");
+  startTelemetry();
   registerServiceWorker();
 });
 
 function bindEvents() {
-  $("#nextOnboarding").addEventListener("click", nextOnboarding);
-  $("#skipOnboarding").addEventListener("click", startApp);
-
   $$(".nav-item").forEach((button) => {
     button.addEventListener("click", () => openView(button.dataset.view));
   });
@@ -93,6 +91,27 @@ function bindEvents() {
 
     const orderButton = event.target.closest("[data-finalize-order]");
     if (orderButton) finalizeOrder();
+
+    const saveProfileButton = event.target.closest("[data-save-profile]");
+    if (saveProfileButton) saveProfile();
+
+    const enablePushButton = event.target.closest("[data-enable-push]");
+    if (enablePushButton) enablePushNotifications();
+
+    const readAllButton = event.target.closest("[data-read-all]");
+    if (readAllButton) markNotificationsRead();
+
+    const exportDataButton = event.target.closest("[data-export-data]");
+    if (exportDataButton) exportDataBackup();
+
+    const resetDataButton = event.target.closest("[data-reset-data]");
+    if (resetDataButton) resetLocalData();
+
+    const sendVetButton = event.target.closest("[data-send-vet]");
+    if (sendVetButton) sendVetMessage();
+
+    const scheduleVetButton = event.target.closest("[data-schedule-vet]");
+    if (scheduleVetButton) scheduleVetVisit();
 
     if (event.target.matches("[data-close-modal]")) closeModal();
   });
@@ -138,6 +157,7 @@ function loadSavedState() {
 
 function persist() {
   const payload = {
+    farm: appData.farm,
     animals: appData.animals,
     notices: appData.notices,
     cart: state.cart,
@@ -145,44 +165,6 @@ function persist() {
     selectedFarm: state.selectedFarm
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-}
-
-function createOnboardingDots() {
-  const dots = $("#onboardingDots");
-  dots.innerHTML = "";
-  for (let index = 0; index < 4; index += 1) {
-    const dot = document.createElement("button");
-    dot.type = "button";
-    dot.setAttribute("aria-label", `Tela ${index + 1}`);
-    dot.addEventListener("click", () => {
-      state.onboardingIndex = index;
-      updateOnboarding();
-    });
-    dots.appendChild(dot);
-  }
-  updateOnboarding();
-}
-
-function nextOnboarding() {
-  if (state.onboardingIndex === 3) {
-    startApp();
-    return;
-  }
-  state.onboardingIndex += 1;
-  updateOnboarding();
-}
-
-function updateOnboarding() {
-  $("#onboardingTrack").style.transform = `translateX(-${state.onboardingIndex * 100}%)`;
-  $$("#onboardingDots button").forEach((dot, index) => dot.classList.toggle("active", index === state.onboardingIndex));
-  $("#nextOnboarding").textContent = state.onboardingIndex === 3 ? "Entrar" : "Continuar";
-}
-
-function startApp() {
-  $("#onboarding").classList.remove("is-active");
-  $("#mainApp").hidden = false;
-  $("#bottomNav").hidden = false;
-  openView("home");
 }
 
 function openView(view) {
@@ -207,6 +189,7 @@ function renderDashboard() {
   const heat = countByStatus("heat");
   const alert = countByStatus("alert") + countByStatus("quarantine");
 
+  $("#farmNameLabel").textContent = appData.farm.name;
   $("#metricTotal").textContent = total;
   $("#metricTotalHelp").textContent = `${appData.farm.name} - ${appData.farm.city}/${appData.farm.state}`;
   $("#metricHealthy").textContent = percent(healthy, total);
@@ -269,6 +252,8 @@ function averageHistory(animals, key) {
 
 function renderNotices() {
   $("#noticeList").innerHTML = appData.notices.slice(0, 3).map(noticeTemplate).join("");
+  const hasUnread = appData.notices.some((notice) => !notice.read);
+  $(".pulse-dot").style.display = hasUnread ? "block" : "none";
 }
 
 function renderAnimals() {
@@ -424,6 +409,10 @@ function renderStore() {
 }
 
 function renderProfile() {
+  $("#profileOwner").textContent = appData.farm.owner;
+  $("#profileRole").textContent = `Produtor rural - ${appData.farm.name}`;
+  $("#profileLocation").textContent = `${appData.farm.city}, ${appData.farm.state}`;
+  $("#profileAvatar").textContent = initials(appData.farm.owner);
   const devices = $("#view-profile [data-open-panel='devices'] span");
   if (devices) devices.textContent = `${appData.animals.length} ativos`;
 }
@@ -762,6 +751,10 @@ function openInfoPanel(panel) {
 function notificationPanel() {
   return `
     <div class="sheet-header"><h2>Central de Notificacoes</h2><button class="close-btn" data-close-modal>x</button></div>
+    <div class="action-strip">
+      <button class="btn btn-primary" data-enable-push>Ativar push</button>
+      <button class="btn btn-secondary" data-read-all>Marcar lidas</button>
+    </div>
     <div class="notice-list">${appData.notices.map(noticeTemplate).join("")}</div>
   `;
 }
@@ -770,17 +763,18 @@ function registrationPanel() {
   return `
     <div class="sheet-header"><h2>Cadastro do usuario e fazenda</h2><button class="close-btn" data-close-modal>x</button></div>
     <div class="form-grid two">
-      ${field("Nome completo", appData.farm.owner)}
-      ${field("CPF/CNPJ", "123.456.789-10")}
-      ${field("E-mail", "ana@fazendaboavista.com")}
-      ${field("Telefone", "(27) 99999-0000")}
-      ${field("Senha", "********", "password")}
-      ${field("Verificacao por e-mail", "Confirmado")}
-      ${field("Nome da fazenda", appData.farm.name)}
-      ${field("Localizacao", `${appData.farm.city} - ${appData.farm.state}`)}
-      ${field("Tamanho do rebanho", `${appData.animals.length} animais monitorados`)}
-      ${field("Conta secundaria", "Sitio Santa Luzia")}
+      ${field("Nome completo", appData.farm.owner, "text", "profileOwnerInput")}
+      ${field("CPF/CNPJ", appData.farm.document || "123.456.789-10", "text", "profileDocumentInput")}
+      ${field("E-mail", appData.farm.email || "ana@fazendaboavista.com", "email", "profileEmailInput")}
+      ${field("Telefone", appData.farm.phone || "(27) 99999-0000", "tel", "profilePhoneInput")}
+      ${field("Senha", "********", "password", "profilePasswordInput")}
+      ${field("Verificacao por e-mail", appData.farm.verified ? "Confirmado" : "Pendente", "text", "profileVerifiedInput")}
+      ${field("Nome da fazenda", appData.farm.name, "text", "profileFarmInput")}
+      ${field("Cidade", appData.farm.city, "text", "profileCityInput")}
+      ${field("Estado", appData.farm.state, "text", "profileStateInput")}
+      ${field("Tamanho do rebanho", `${appData.animals.length} animais monitorados`, "text", "profileHerdInput")}
     </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:14px" data-save-profile>Salvar dados</button>
   `;
 }
 
@@ -805,6 +799,7 @@ function reportsPanel() {
       <button class="settings-item" data-print-report="health"><svg><use href="#icon-file"></use></svg>Saude do rebanho<span>Gerar PDF</span></button>
       <button class="settings-item" data-print-report="reproductive"><svg><use href="#icon-file"></use></svg>Reprodutivo e cio<span>Gerar PDF</span></button>
       <button class="settings-item" data-print-report="traceability"><svg><use href="#icon-file"></use></svg>Rastreabilidade de exportacao<span>Gerar PDF</span></button>
+      <button class="settings-item" data-export-data><svg><use href="#icon-file"></use></svg>Backup dos dados<span>JSON</span></button>
     </div>
   `;
 }
@@ -821,8 +816,8 @@ function vetPanel() {
   return `
     <div class="sheet-header"><h2>Apoio Veterinario</h2><button class="close-btn" data-close-modal>x</button></div>
     <div class="timeline"><div><strong>Dra. Marina Costa</strong><br>Online agora para triagem sanitaria.</div><div>Proximo horario disponivel: hoje, 15:30.</div></div>
-    <label class="form-field"><span>Mensagem</span><textarea rows="4">Animal ${appData.animals[0]?.id || "VB-000"} com alteracao detectada. Solicito orientacao.</textarea></label>
-    <div class="action-strip"><button class="btn btn-primary" data-close-modal>Enviar chat</button><button class="btn btn-secondary" data-close-modal>Agendar visita</button></div>
+    <label class="form-field"><span>Mensagem</span><textarea id="vetMessageInput" rows="4">Animal ${appData.animals[0]?.id || "VB-000"} com alteracao detectada. Solicito orientacao.</textarea></label>
+    <div class="action-strip"><button class="btn btn-primary" data-send-vet>Enviar chat</button><button class="btn btn-secondary" data-schedule-vet>Agendar visita</button></div>
   `;
 }
 
@@ -857,7 +852,8 @@ function openFarmSwitcher() {
     <div class="sheet-header"><h2>Multiplas fazendas</h2><button class="close-btn" data-close-modal>x</button></div>
     <div class="settings-list">
       <button class="settings-item" data-close-modal><svg><use href="#icon-farm"></use></svg>${appData.farm.name}<span>${appData.animals.length} animais</span></button>
-      <button class="settings-item" data-close-modal><svg><use href="#icon-farm"></use></svg>Sitio Santa Luzia<span>128 animais</span></button>
+      <button class="settings-item" data-close-modal><svg><use href="#icon-farm"></use></svg>Sitio Santa Luzia<span>Conta pronta para sincronizar API</span></button>
+      <button class="settings-item" data-reset-data><svg><use href="#icon-shield"></use></svg>Restaurar dados demo<span>Reset local</span></button>
     </div>
   `);
 }
@@ -885,6 +881,91 @@ function registerTreatment(id) {
   renderAll();
 }
 
+function sendVetMessage() {
+  const message = $("#vetMessageInput")?.value.trim();
+  addNotice("V", "Mensagem enviada", message ? `Veterinario recebeu: ${message}` : "Mensagem enviada ao apoio veterinario.", "Agora");
+  closeModal();
+  persist();
+  renderAll();
+}
+
+function scheduleVetVisit() {
+  addNotice("V", "Visita agendada", "Apoio veterinario agendado para hoje as 15:30.", "Agora");
+  closeModal();
+  persist();
+  renderAll();
+}
+
+function saveProfile() {
+  appData.farm.owner = $("#profileOwnerInput").value.trim() || appData.farm.owner;
+  appData.farm.document = $("#profileDocumentInput").value.trim();
+  appData.farm.email = $("#profileEmailInput").value.trim();
+  appData.farm.phone = $("#profilePhoneInput").value.trim();
+  appData.farm.verified = true;
+  appData.farm.name = $("#profileFarmInput").value.trim() || appData.farm.name;
+  appData.farm.city = $("#profileCityInput").value.trim() || appData.farm.city;
+  appData.farm.state = $("#profileStateInput").value.trim() || appData.farm.state;
+  addNotice("P", "Perfil atualizado", "Dados do usuario e da fazenda foram salvos neste dispositivo.", "Agora");
+  closeModal();
+  persist();
+  renderAll();
+}
+
+async function enablePushNotifications() {
+  if (!("Notification" in window)) {
+    addNotice("!", "Push indisponivel", "Este navegador nao suporta notificacoes push.", "Agora");
+    renderNotices();
+    return;
+  }
+
+  const permission = Notification.permission === "default"
+    ? await Notification.requestPermission()
+    : Notification.permission;
+
+  if (permission === "granted") {
+    new Notification("VitalBov ativo", {
+      body: "Alertas sanitarios e reprodutivos serao exibidos neste dispositivo."
+    });
+    addNotice("N", "Push ativado", "Notificacoes inteligentes foram habilitadas.", "Agora");
+  } else {
+    addNotice("!", "Push nao autorizado", "Ative as notificacoes do navegador para receber alertas.", "Agora");
+  }
+
+  closeModal();
+  persist();
+  renderAll();
+}
+
+function markNotificationsRead() {
+  appData.notices = appData.notices.map((notice) => ({ ...notice, read: true }));
+  closeModal();
+  persist();
+  renderNotices();
+}
+
+function exportDataBackup() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    farm: appData.farm,
+    animals: appData.animals,
+    notices: appData.notices,
+    cart: state.cart
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "vitalbov-backup.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetLocalData() {
+  if (!confirm("Restaurar os dados demo e apagar alteracoes locais?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  window.location.reload();
+}
+
 function generateReport(type) {
   const titles = {
     health: "Relatorio de Saude do Rebanho",
@@ -908,6 +989,42 @@ function generateReport(type) {
   report.print();
 }
 
+function startTelemetry() {
+  if (state.telemetryTimer) clearInterval(state.telemetryTimer);
+  state.telemetryTimer = setInterval(() => {
+    if (state.offline) return;
+    const animal = appData.animals[Math.floor(Math.random() * appData.animals.length)];
+    if (!animal || animal.status === "quarantine") return;
+
+    const variation = Number(((Math.random() - 0.45) * 0.28).toFixed(1));
+    animal.temp = Number(Math.max(37.8, Math.min(39.8, animal.temp + variation)).toFixed(1));
+    animal.lastSeen = "Agora";
+    animal.battery = Math.max(1, animal.battery - (Math.random() > 0.82 ? 1 : 0));
+    animal.history.temp.push(animal.temp);
+    animal.history.temp = animal.history.temp.slice(-7);
+
+    const ruminationValue = Number(String(animal.rumination).replace(/\D/g, "")) || 450;
+    const nextRumination = Math.max(260, Math.min(520, ruminationValue + Math.round((Math.random() - 0.5) * 18)));
+    animal.rumination = `${nextRumination} min`;
+    animal.history.rumination.push(nextRumination);
+    animal.history.rumination = animal.history.rumination.slice(-7);
+
+    if (animal.temp >= 39.3 && animal.status === "healthy") {
+      animal.status = "alert";
+      animal.statusLabel = STATUS_LABELS.alert;
+      animal.activity = "Moderada";
+      animal.behavior = "Possivel desconforto";
+      animal.alerts.unshift("Alerta automatico por temperatura acima do basal");
+      addNotice("!", "Alerta automatico", `${animal.id} atingiu ${animal.temp} C.`, "Agora");
+      sendBrowserNotification("Alerta VitalBov", `${animal.id} atingiu ${animal.temp} C.`);
+    }
+
+    persist();
+    renderAll();
+    updateMapMarkers();
+  }, 18000);
+}
+
 function toggleOffline() {
   state.offline = !state.offline;
   if (!state.offline) {
@@ -924,7 +1041,7 @@ function toggleDarkMode() {
 }
 
 function addNotice(icon, title, text, time) {
-  appData.notices.unshift({ icon, title, text, time });
+  appData.notices.unshift({ icon, title, text, time, read: false });
 }
 
 function noticeTemplate(notice) {
@@ -1010,6 +1127,20 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;"
   })[char]);
+}
+
+function initials(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "VB";
+}
+
+function sendBrowserNotification(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  new Notification(title, { body });
 }
 
 function registerServiceWorker() {

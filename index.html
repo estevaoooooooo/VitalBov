@@ -12,54 +12,14 @@
   </head>
   <body>
     <div class="app-shell" id="app">
-      <section class="onboarding is-active" id="onboarding" aria-label="Apresentacao VitalBov">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 64 64" role="img">
-            <path d="M12 34c0-12 8-21 20-21s20 9 20 21c0 8-4 15-11 18H23c-7-3-11-10-11-18Z" fill="#577627"/>
-            <path d="M20 26c-6-3-10-8-9-14 7 1 12 5 15 11m18 3c6-3 10-8 9-14-7 1-12 5-15 11" fill="none" stroke="#3d6216" stroke-width="5" stroke-linecap="round"/>
-            <circle cx="24" cy="34" r="3" fill="#fff"/>
-            <circle cx="40" cy="34" r="3" fill="#fff"/>
-            <path d="M26 45h12" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="48" cy="22" r="7" fill="#bfca63"/>
-          </svg>
-        </div>
-        <div class="onboarding-track" id="onboardingTrack">
-          <article class="onboarding-card">
-            <span class="eyebrow">Colatina - ES</span>
-            <h1>VitalBov</h1>
-            <p>Monitoramento bio-comportamental em tempo real para pecuaria de corte e leite.</p>
-          </article>
-          <article class="onboarding-card">
-            <span class="eyebrow">Smart Ear Tag</span>
-            <h2>Sensores no campo, decisao na palma da mao</h2>
-            <p>Temperatura de alta precisao, acelerometro 3D e Edge Computing para detectar cio, ruminacao, prostracao e risco sanitario.</p>
-          </article>
-          <article class="onboarding-card">
-            <span class="eyebrow">Quarentena Digital</span>
-            <h2>Alertas precoces para proteger o rebanho</h2>
-            <p>Receba sinais via LoRaWAN, isole animais sob suspeita e gere rastreabilidade para certificacao de exportacao.</p>
-          </article>
-          <article class="onboarding-card">
-            <span class="eyebrow">Offline-first</span>
-            <h2>Feito para a rotina rural</h2>
-            <p>Funciona com conexao instavel, sincroniza automaticamente e organiza fazendas, brincos, historicos e relatorios.</p>
-          </article>
-        </div>
-        <div class="onboarding-controls">
-          <div class="dots" id="onboardingDots" aria-label="Progresso do onboarding"></div>
-          <button class="btn btn-ghost" id="skipOnboarding">Pular</button>
-          <button class="btn btn-primary" id="nextOnboarding">Continuar</button>
-        </div>
-      </section>
-
-      <main class="main-app" id="mainApp" hidden>
+      <main class="main-app" id="mainApp">
         <header class="topbar">
           <button class="icon-btn" id="openNotifications" aria-label="Abrir notificacoes">
             <svg><use href="#icon-bell"></use></svg>
             <span class="pulse-dot"></span>
           </button>
           <div>
-            <p class="kicker">Fazenda Boa Vista</p>
+            <p class="kicker" id="farmNameLabel">Fazenda Boa Vista</p>
             <h1 id="screenTitle">Inicio</h1>
           </div>
           <button class="farm-switch" id="farmSwitch" aria-label="Trocar fazenda">
@@ -182,11 +142,11 @@
 
         <section class="view" id="view-profile" data-title="Perfil">
           <article class="profile-card">
-            <div class="avatar">AM</div>
+            <div class="avatar" id="profileAvatar">AM</div>
             <div>
-              <h2>Ana Martins</h2>
-              <p>Produtora rural - Fazenda Boa Vista</p>
-              <span>Colatina, Espirito Santo</span>
+              <h2 id="profileOwner">Ana Martins</h2>
+              <p id="profileRole">Produtora rural - Fazenda Boa Vista</p>
+              <span id="profileLocation">Colatina, Espirito Santo</span>
             </div>
           </article>
           <div class="settings-list">
@@ -201,7 +161,7 @@
         </section>
       </main>
 
-      <nav class="bottom-nav" id="bottomNav" hidden aria-label="Navegacao principal">
+      <nav class="bottom-nav" id="bottomNav" aria-label="Navegacao principal">
         <button class="nav-item active" data-view="home"><svg><use href="#icon-home"></use></svg><span>Inicio</span></button>
         <button class="nav-item" data-view="tracking"><svg><use href="#icon-map"></use></svg><span>Rastrear</span></button>
         <button class="nav-item" data-view="animals"><svg><use href="#icon-cow"></use></svg><span>Animais</span></button>
