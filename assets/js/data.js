@@ -1,0 +1,190 @@
+window.VITALBOV_DATA = {
+  farm: {
+    name: "Fazenda Boa Vista",
+    owner: "Ana Martins",
+    city: "Colatina",
+    state: "ES",
+    center: [-19.538, -40.630],
+    pendingSync: 38,
+    gateways: 4
+  },
+  animals: [
+    {
+      id: "VB-219",
+      name: "Estrela",
+      lot: "Lote Leite A",
+      breed: "Girolando",
+      sex: "Femea",
+      born: "2021-08-12",
+      weight: 518,
+      status: "quarantine",
+      statusLabel: "Quarentena",
+      temp: 39.9,
+      activity: "Baixa",
+      rumination: "312 min",
+      behavior: "Prostracao leve",
+      reproductive: "Puerperio",
+      photo: "assets/img/cow-1.svg",
+      coords: [-19.5358, -40.6289],
+      battery: 76,
+      lastSeen: "Agora",
+      history: {
+        temp: [38.5, 38.7, 39.0, 39.2, 39.6, 39.8, 39.9],
+        rumination: [420, 398, 376, 348, 330, 318, 312],
+        activity: [61, 54, 45, 38, 35, 31, 28]
+      },
+      alerts: ["Febre persistente", "Ruminacao abaixo da media", "Quarentena iniciada ha 2h"]
+    },
+    {
+      id: "VB-142",
+      name: "Jade",
+      lot: "Matrizes 02",
+      breed: "Nelore",
+      sex: "Femea",
+      born: "2020-04-03",
+      weight: 476,
+      status: "heat",
+      statusLabel: "Cio",
+      temp: 38.6,
+      activity: "Alta",
+      rumination: "438 min",
+      behavior: "Monta detectada",
+      reproductive: "Janela fertil de 14h",
+      photo: "assets/img/cow-2.svg",
+      coords: [-19.5411, -40.6218],
+      battery: 88,
+      lastSeen: "4 min",
+      history: {
+        temp: [38.1, 38.3, 38.5, 38.6, 38.6, 38.7, 38.6],
+        rumination: [452, 446, 440, 438, 431, 426, 438],
+        activity: [54, 61, 76, 84, 91, 88, 79]
+      },
+      alerts: ["Cio detectado com 92% de confianca", "Aumento de deslocamento"]
+    },
+    {
+      id: "VB-104",
+      name: "Diamante",
+      lot: "Lote Corte B",
+      breed: "Angus",
+      sex: "Macho",
+      born: "2022-10-19",
+      weight: 392,
+      status: "healthy",
+      statusLabel: "Saudavel",
+      temp: 38.2,
+      activity: "Normal",
+      rumination: "471 min",
+      behavior: "Padrao estavel",
+      reproductive: "Nao aplicavel",
+      photo: "assets/img/cow-3.svg",
+      coords: [-19.5328, -40.6377],
+      battery: 93,
+      lastSeen: "2 min",
+      history: {
+        temp: [38.0, 38.1, 38.2, 38.1, 38.3, 38.2, 38.2],
+        rumination: [466, 471, 468, 477, 472, 470, 471],
+        activity: [48, 51, 50, 49, 52, 47, 50]
+      },
+      alerts: ["Sem eventos criticos nos ultimos 7 dias"]
+    },
+    {
+      id: "VB-088",
+      name: "Lua",
+      lot: "Bezerras",
+      breed: "Holandes",
+      sex: "Femea",
+      born: "2023-01-24",
+      weight: 284,
+      status: "alert",
+      statusLabel: "Alerta",
+      temp: 39.1,
+      activity: "Moderada",
+      rumination: "354 min",
+      behavior: "Possivel desconforto",
+      reproductive: "Pre-puberdade",
+      photo: "assets/img/cow-4.svg",
+      coords: [-19.5462, -40.6344],
+      battery: 61,
+      lastSeen: "8 min",
+      history: {
+        temp: [38.2, 38.3, 38.7, 39.0, 39.1, 39.0, 39.1],
+        rumination: [434, 421, 399, 380, 362, 358, 354],
+        activity: [52, 49, 44, 46, 42, 40, 41]
+      },
+      alerts: ["Temperatura acima do basal", "Sugestao: reavaliar em 40 min"]
+    },
+    {
+      id: "VB-311",
+      name: "Safira",
+      lot: "Matrizes 01",
+      breed: "Nelore",
+      sex: "Femea",
+      born: "2019-06-30",
+      weight: 501,
+      status: "healthy",
+      statusLabel: "Saudavel",
+      temp: 38.4,
+      activity: "Normal",
+      rumination: "456 min",
+      behavior: "Padrao estavel",
+      reproductive: "Prenhez confirmada",
+      photo: "assets/img/cow-5.svg",
+      coords: [-19.5299, -40.6258],
+      battery: 80,
+      lastSeen: "6 min",
+      history: {
+        temp: [38.3, 38.4, 38.3, 38.4, 38.5, 38.4, 38.4],
+        rumination: [444, 451, 455, 458, 456, 459, 456],
+        activity: [43, 45, 46, 44, 45, 43, 44]
+      },
+      alerts: ["Carteira vacinal em dia"]
+    },
+    {
+      id: "VB-267",
+      name: "Baronesa",
+      lot: "Lote Leite B",
+      breed: "Jersey",
+      sex: "Femea",
+      born: "2020-11-09",
+      weight: 421,
+      status: "healthy",
+      statusLabel: "Saudavel",
+      temp: 38.1,
+      activity: "Normal",
+      rumination: "489 min",
+      behavior: "Alta produtividade",
+      reproductive: "Lactacao",
+      photo: "assets/img/cow-6.svg",
+      coords: [-19.5397, -40.6421],
+      battery: 69,
+      lastSeen: "11 min",
+      history: {
+        temp: [38.0, 38.1, 38.0, 38.2, 38.1, 38.1, 38.1],
+        rumination: [482, 487, 491, 488, 492, 486, 489],
+        activity: [50, 52, 53, 51, 55, 52, 54]
+      },
+      alerts: ["Producao estimada acima da media"]
+    }
+  ],
+  notices: [
+    { icon: "!", title: "Alerta sanitario", text: "VB-219 entrou em Quarentena Digital por febre persistente.", time: "Agora" },
+    { icon: "C", title: "Cio detectado", text: "VB-142 esta na janela ideal para inseminacao.", time: "18 min" },
+    { icon: "S", title: "Sincronizacao", text: "38 leituras offline foram enviadas ao voltar a rede.", time: "1 h" },
+    { icon: "R", title: "Relatorio pronto", text: "Saude do rebanho - maio disponivel para PDF.", time: "3 h" }
+  ],
+  products: [
+    { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria" },
+    { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes" },
+    { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario" },
+    { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento" },
+    { id: "p5", name: "Suplemento Mineral Premium", category: "Nutriccao", price: 148.7, recommended: "Suporte a matrizes em lactacao" },
+    { id: "p6", name: "Aplicador RFID Pro", category: "Manejo", price: 419, recommended: "Agiliza cadastro em lote" },
+    { id: "p7", name: "Assinatura Vet 24h", category: "Servicos", price: 89.9, recommended: "Chat e agendamento prioritario" },
+    { id: "p8", name: "Relatorio Exportacao Plus", category: "Servicos", price: 199, recommended: "Rastreabilidade para certificacao" }
+  ],
+  chartData: {
+    rumination: { label: "Ruminacao media (min)", values: [425, 438, 431, 454, 448, 466, 452], color: "#577627" },
+    temperature: { label: "Temperatura media (C)", values: [38.2, 38.4, 38.3, 38.6, 38.5, 38.7, 38.4], color: "#bc3f32" },
+    heat: { label: "Eventos de cio", values: [2, 4, 3, 7, 5, 6, 4], color: "#9f5cc0" }
+  }
+};

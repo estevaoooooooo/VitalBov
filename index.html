@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#577627">
+    <meta name="description" content="VitalBov - monitoramento bio-comportamental para bovinos com Smart Ear Tag.">
+    <title>VitalBov</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
+  </head>
+  <body>
+    <div class="app-shell" id="app">
+      <section class="onboarding is-active" id="onboarding" aria-label="Apresentacao VitalBov">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <path d="M12 34c0-12 8-21 20-21s20 9 20 21c0 8-4 15-11 18H23c-7-3-11-10-11-18Z" fill="#577627"/>
+            <path d="M20 26c-6-3-10-8-9-14 7 1 12 5 15 11m18 3c6-3 10-8 9-14-7 1-12 5-15 11" fill="none" stroke="#3d6216" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="24" cy="34" r="3" fill="#fff"/>
+            <circle cx="40" cy="34" r="3" fill="#fff"/>
+            <path d="M26 45h12" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="48" cy="22" r="7" fill="#bfca63"/>
+          </svg>
+        </div>
+        <div class="onboarding-track" id="onboardingTrack">
+          <article class="onboarding-card">
+            <span class="eyebrow">Colatina - ES</span>
+            <h1>VitalBov</h1>
+            <p>Monitoramento bio-comportamental em tempo real para pecuaria de corte e leite.</p>
+          </article>
+          <article class="onboarding-card">
+            <span class="eyebrow">Smart Ear Tag</span>
+            <h2>Sensores no campo, decisao na palma da mao</h2>
+            <p>Temperatura de alta precisao, acelerometro 3D e Edge Computing para detectar cio, ruminacao, prostracao e risco sanitario.</p>
+          </article>
+          <article class="onboarding-card">
+            <span class="eyebrow">Quarentena Digital</span>
+            <h2>Alertas precoces para proteger o rebanho</h2>
+            <p>Receba sinais via LoRaWAN, isole animais sob suspeita e gere rastreabilidade para certificacao de exportacao.</p>
+          </article>
+          <article class="onboarding-card">
+            <span class="eyebrow">Offline-first</span>
+            <h2>Feito para a rotina rural</h2>
+            <p>Funciona com conexao instavel, sincroniza automaticamente e organiza fazendas, brincos, historicos e relatorios.</p>
+          </article>
+        </div>
+        <div class="onboarding-controls">
+          <div class="dots" id="onboardingDots" aria-label="Progresso do onboarding"></div>
+          <button class="btn btn-ghost" id="skipOnboarding">Pular</button>
+          <button class="btn btn-primary" id="nextOnboarding">Continuar</button>
+        </div>
+      </section>
+
+      <main class="main-app" id="mainApp" hidden>
+        <header class="topbar">
+          <button class="icon-btn" id="openNotifications" aria-label="Abrir notificacoes">
+            <svg><use href="#icon-bell"></use></svg>
+            <span class="pulse-dot"></span>
+          </button>
+          <div>
+            <p class="kicker">Fazenda Boa Vista</p>
+            <h1 id="screenTitle">Inicio</h1>
+          </div>
+          <button class="farm-switch" id="farmSwitch" aria-label="Trocar fazenda">
+            <svg><use href="#icon-farm"></use></svg>
+            <span>2</span>
+          </button>
+        </header>
+
+        <section class="view active" id="view-home" data-title="Inicio">
+          <div class="sync-banner">
+            <div>
+              <strong>Sincronizacao inteligente</strong>
+              <span id="syncStatus">Online - LoRaWAN estavel</span>
+            </div>
+            <button class="chip" id="toggleOffline">Simular offline</button>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>Total monitorado</span>
+              <strong id="metricTotal">0</strong>
+              <small id="metricTotalHelp">Rebanho ativo</small>
+            </article>
+            <article class="metric-card healthy">
+              <span>Saudaveis</span>
+              <strong id="metricHealthy">0%</strong>
+              <small id="metricHealthyHelp">0 animais</small>
+            </article>
+            <article class="metric-card heat">
+              <span>Em cio</span>
+              <strong id="metricHeat">0%</strong>
+              <small id="metricHeatHelp">0 vacas</small>
+            </article>
+            <article class="metric-card alert">
+              <span>Em alerta</span>
+              <strong id="metricAlert">0%</strong>
+              <small id="metricAlertHelp">0 casos</small>
+            </article>
+          </div>
+
+          <article class="priority-alert" id="priorityAlert">
+            <div>
+              <span class="status-badge quarantine">Quarentena Digital</span>
+              <h2>Nenhum alerta prioritario</h2>
+              <p>O rebanho esta operando dentro dos parametros monitorados.</p>
+            </div>
+            <button class="btn btn-light" data-open-view="animals">Ver animais</button>
+          </article>
+
+          <section class="panel">
+            <div class="section-title">
+              <h2>Indicadores dos ultimos 7 dias</h2>
+              <button class="text-btn" data-open-view="profile">Exportar PDF</button>
+            </div>
+            <div class="chart-tabs" role="tablist">
+              <button class="segmented active" data-chart="rumination">Ruminacao</button>
+              <button class="segmented" data-chart="temperature">Temperatura</button>
+              <button class="segmented" data-chart="heat">Cio</button>
+            </div>
+            <canvas id="mainChart" height="190" aria-label="Grafico de indicadores"></canvas>
+          </section>
+
+          <section class="panel">
+            <div class="section-title">
+              <h2>Ultimos avisos</h2>
+              <button class="text-btn" data-open-panel="notifications">Ver todos</button>
+            </div>
+            <div class="notice-list" id="noticeList"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-tracking" data-title="Rastreamento">
+          <div class="search-row">
+            <label class="search-box">
+              <svg><use href="#icon-search"></use></svg>
+              <input id="trackingSearch" type="search" placeholder="Buscar por brinco, nome ou lote">
+            </label>
+            <button class="icon-btn filter-btn" id="openFilters" aria-label="Filtros">
+              <svg><use href="#icon-filter"></use></svg>
+            </button>
+          </div>
+          <section class="map-panel" aria-label="Mapa dos animais">
+            <div id="animalMap" class="leaflet-map" role="application" aria-label="Mapa Leaflet do rebanho"></div>
+            <div class="map-fallback" id="mapFallback" hidden>
+              <div class="map-grid"></div>
+            </div>
+            <div class="map-legend">
+              <span><i class="legend-dot healthy"></i>Saudavel</span>
+              <span><i class="legend-dot heat"></i>Cio</span>
+              <span><i class="legend-dot alert"></i>Alerta</span>
+              <span><i class="legend-dot quarantine"></i>Quarentena</span>
+            </div>
+          </section>
+          <div class="animal-list" id="trackingList"></div>
+        </section>
+
+        <section class="view" id="view-animals" data-title="Meus Animais">
+          <div class="action-strip">
+            <button class="btn btn-primary" id="openAnimalForm"><svg><use href="#icon-plus"></use></svg>Cadastrar animal</button>
+            <button class="btn btn-secondary" id="bulkImport"><svg><use href="#icon-upload"></use></svg>Importar CSV</button>
+          </div>
+          <div class="animal-grid" id="animalGrid"></div>
+        </section>
+
+        <section class="view" id="view-store" data-title="Loja">
+          <div class="cart-summary">
+            <div>
+              <span>Carrinho VitalBov</span>
+              <strong id="cartCount">0 itens</strong>
+            </div>
+            <button class="btn btn-primary" id="checkoutButton">Checkout</button>
+          </div>
+          <label class="search-box store-search">
+            <svg><use href="#icon-search"></use></svg>
+            <input id="storeSearch" type="search" placeholder="Buscar brincos, vacinas, suplementos">
+          </label>
+          <div class="category-row" id="storeCategories"></div>
+          <div class="product-grid" id="productGrid"></div>
+        </section>
+
+        <section class="view" id="view-profile" data-title="Perfil">
+          <article class="profile-card">
+            <div class="avatar">AM</div>
+            <div>
+              <h2>Ana Martins</h2>
+              <p>Produtora rural - Fazenda Boa Vista</p>
+              <span>Colatina, Espirito Santo</span>
+            </div>
+          </article>
+          <div class="settings-list">
+            <button class="settings-item" data-open-panel="registration"><svg><use href="#icon-user"></use></svg>Cadastro e fazendas<span>Completo</span></button>
+            <button class="settings-item" data-open-panel="devices"><svg><use href="#icon-tag"></use></svg>Dispositivos Smart Ear Tag<span>486 ativos</span></button>
+            <button class="settings-item" data-open-panel="reports"><svg><use href="#icon-file"></use></svg>Relatorios exportaveis<span>PDF</span></button>
+            <button class="settings-item" data-open-panel="vaccines"><svg><use href="#icon-shield"></use></svg>Carteira de vacinacao<span>Atualizada</span></button>
+            <button class="settings-item" data-open-panel="vet"><svg><use href="#icon-chat"></use></svg>Apoio Veterinario<span>Online</span></button>
+            <button class="settings-item" data-open-panel="education"><svg><use href="#icon-book"></use></svg>Educacao Pecuaria 4.0<span>12 aulas</span></button>
+            <button class="settings-item" id="darkModeToggle"><svg><use href="#icon-moon"></use></svg>Modo escuro<span>Alternar</span></button>
+          </div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" id="bottomNav" hidden aria-label="Navegacao principal">
+        <button class="nav-item active" data-view="home"><svg><use href="#icon-home"></use></svg><span>Inicio</span></button>
+        <button class="nav-item" data-view="tracking"><svg><use href="#icon-map"></use></svg><span>Rastrear</span></button>
+        <button class="nav-item" data-view="animals"><svg><use href="#icon-cow"></use></svg><span>Animais</span></button>
+        <button class="nav-item" data-view="store"><svg><use href="#icon-store"></use></svg><span>Loja</span></button>
+        <button class="nav-item" data-view="profile"><svg><use href="#icon-user"></use></svg><span>Perfil</span></button>
+      </nav>
+    </div>
+
+    <div class="modal-root" id="modalRoot" aria-live="polite"></div>
+
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="icon-home" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v8a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></symbol>
+      <symbol id="icon-map" viewBox="0 0 24 24"><path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3zM9 3v15m6-12v15"/></symbol>
+      <symbol id="icon-cow" viewBox="0 0 24 24"><path d="M6 10c-3-1-4-3-4-6 3 0 5 2 6 4m10 2c3-1 4-3 4-6-3 0-5 2-6 4M6 11c0-4 3-7 6-7s6 3 6 7v4c0 4-3 7-6 7s-6-3-6-7z"/><path d="M9 13h.1M15 13h.1M10 18h4"/></symbol>
+      <symbol id="icon-store" viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5zM7 10V7a5 5 0 0 1 10 0v3"/></symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></symbol>
+      <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+      <symbol id="icon-farm" viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12M7 21v-7h10v7M9 10h6"/></symbol>
+      <symbol id="icon-search" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></symbol>
+      <symbol id="icon-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 16V4m-5 5 5-5 5 5M4 20h16"/></symbol>
+      <symbol id="icon-tag" viewBox="0 0 24 24"><path d="M20 13 11 22 2 13V2h11zM7 7h.1"/></symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5"/></symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></symbol>
+      <symbol id="icon-chat" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24"><path d="M4 19a3 3 0 0 1 3-3h14v5H7a3 3 0 0 1-3-3V5a3 3 0 0 1 3-3h14v14"/></symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 14a8 8 0 1 1-11-11 9 9 0 0 0 11 11Z"/></symbol>
+    </svg>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>
