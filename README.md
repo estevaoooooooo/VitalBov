@@ -45,7 +45,7 @@ https://SEU_USUARIO.github.io/VitalBov/
 
 ## Banco de dados
 
-O app usa IndexedDB como banco local no navegador, com fallback para `localStorage`. Isso permite funcionar no celular pelo GitHub Pages, inclusive offline, salvando animais, fazenda, notificacoes, carrinho, pedidos e eventos de auditoria.
+O app usa IndexedDB como banco local no navegador, com fallback para `localStorage`. Isso permite funcionar no celular pelo GitHub Pages, inclusive offline, salvando animais, fotos dos animais, fazenda, notificacoes, carrinho, pedidos e eventos de auditoria.
 
 Para um banco remoto compartilhado entre varios celulares/usuarios, conecte a camada de persistencia em `assets/js/app.js` a um backend como Firebase, Supabase ou uma API propria. GitHub Pages hospeda apenas arquivos estaticos, entao nao executa banco de dados de servidor.
 

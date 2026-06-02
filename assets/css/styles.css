@@ -807,6 +807,27 @@ body.dark .map-legend {
   background: var(--paper);
 }
 
+.photo-field {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  margin-bottom: 12px;
+}
+
+.photo-field img {
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  background: #d7e4c2;
+  border: 1px solid var(--line);
+}
+
 .animal-detail-hero {
   display: grid;
   grid-template-columns: 92px 1fr;

@@ -81,6 +81,9 @@ function bindEvents() {
     const submitAnimal = event.target.closest("[data-submit-animal]");
     if (submitAnimal) saveAnimalFromForm(submitAnimal.dataset.submitAnimal);
 
+    const clearPhotoButton = event.target.closest("[data-clear-photo]");
+    if (clearPhotoButton) clearAnimalPhotoPreview();
+
     const importButton = event.target.closest("[data-import-csv]");
     if (importButton) importCsvAnimals();
 
@@ -137,6 +140,9 @@ function bindEvents() {
   $("#openFilters").addEventListener("click", openFilters);
   $("#farmSwitch").addEventListener("click", openFarmSwitcher);
   $("#darkModeToggle").addEventListener("click", toggleDarkMode);
+  document.addEventListener("change", (event) => {
+    if (event.target.matches("#animalPhotoInput")) previewAnimalPhoto(event.target);
+  });
   window.addEventListener("resize", () => {
     drawChart();
     if (state.map) state.map.invalidateSize();
@@ -235,6 +241,7 @@ function normalizeState() {
   appData.farm.updatedAt ||= Date.now();
   appData.animals = appData.animals.map((animal) => ({
     ...animal,
+    photo: animal.photo || defaultAnimalPhoto(animal.id),
     updatedAt: animal.updatedAt || Date.now()
   }));
   appData.notices = appData.notices.map((notice) => ({
@@ -718,10 +725,21 @@ function drawTinyAnimalChart(animal) {
 
 function openAnimalForm(id) {
   const animal = id ? findAnimal(id) : null;
+  const defaultPhoto = animal?.photo || defaultAnimalPhoto(animal?.id || nextAnimalId());
   openModal(`
     <div class="sheet-header">
       <h2>${animal ? "Editar animal" : "Cadastro de animal"}</h2>
       <button class="close-btn" data-close-modal aria-label="Fechar">x</button>
+    </div>
+    <div class="photo-field">
+      <img id="animalPhotoPreview" src="${defaultPhoto}" alt="Preview da foto do animal">
+      <div>
+        <label class="form-field">
+          <span>Foto do animal</span>
+          <input id="animalPhotoInput" type="file" accept="image/*" capture="environment">
+        </label>
+        <button class="btn btn-secondary" style="width:100%" data-clear-photo>Remover foto</button>
+      </div>
     </div>
     <div class="form-grid two" id="animalForm">
       ${field("Numero do brinco", animal?.id || nextAnimalId(), "text", "animalId")}
@@ -735,9 +753,10 @@ function openAnimalForm(id) {
     </div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px" data-submit-animal="${animal?.id || ""}">Salvar cadastro</button>
   `);
+  $("#animalPhotoPreview").dataset.photo = defaultPhoto;
 }
 
-function saveAnimalFromForm(originalId) {
+async function saveAnimalFromForm(originalId) {
   const id = $("#animalId").value.trim().toUpperCase();
   const name = $("#animalName").value.trim();
   if (!id || !name) return;
@@ -745,6 +764,7 @@ function saveAnimalFromForm(originalId) {
   const status = $("#animalStatus").value;
   const existing = originalId ? findAnimal(originalId) : null;
   const coords = existing?.coords || randomNearbyCoords();
+  const photo = await getAnimalPhoto(existing);
   const animal = {
     id,
     name,
@@ -760,7 +780,7 @@ function saveAnimalFromForm(originalId) {
     rumination: status === "alert" || status === "quarantine" ? "360 min" : "462 min",
     behavior: status === "heat" ? "Monta detectada" : "Padrao estavel",
     reproductive: $("#animalSex").value === "Femea" ? "Monitoramento ativo" : "Nao aplicavel",
-    photo: existing?.photo || "assets/img/cow-5.svg",
+    photo,
     coords,
     battery: existing?.battery || 100,
     lastSeen: "Agora",
@@ -786,6 +806,74 @@ function saveAnimalFromForm(originalId) {
   persist();
   renderAll();
   updateMapMarkers();
+}
+
+function previewAnimalPhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    addNotice("!", "Arquivo invalido", "Selecione uma imagem para a foto do animal.", "Agora");
+    renderNotices();
+    input.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const preview = $("#animalPhotoPreview");
+    preview.src = reader.result;
+    preview.dataset.photo = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearAnimalPhotoPreview() {
+  const preview = $("#animalPhotoPreview");
+  const input = $("#animalPhotoInput");
+  const fallback = defaultAnimalPhoto($("#animalId")?.value || nextAnimalId());
+  preview.src = fallback;
+  preview.dataset.photo = fallback;
+  if (input) input.value = "";
+}
+
+async function getAnimalPhoto(existing) {
+  const input = $("#animalPhotoInput");
+  const preview = $("#animalPhotoPreview");
+  const file = input?.files?.[0];
+  if (file) return imageFileToOptimizedDataUrl(file);
+  return preview?.dataset.photo || existing?.photo || defaultAnimalPhoto($("#animalId")?.value || "");
+}
+
+function imageFileToOptimizedDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const maxSize = 900;
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.onerror = reject;
+      image.src = reader.result;
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 function openBulkImport() {
@@ -825,7 +913,7 @@ function importCsvAnimals() {
         rumination: "460 min",
         behavior: "Padrao estavel",
         reproductive: sex === "Macho" ? "Nao aplicavel" : "Monitoramento ativo",
-        photo: "assets/img/cow-6.svg",
+        photo: defaultAnimalPhoto(id),
         coords: randomNearbyCoords(),
         battery: 100,
         lastSeen: "Agora",
@@ -1335,6 +1423,12 @@ function randomNearbyCoords() {
     Number((lat + (Math.random() - 0.5) * 0.018).toFixed(6)),
     Number((lng + (Math.random() - 0.5) * 0.022).toFixed(6))
   ];
+}
+
+function defaultAnimalPhoto(seed = "") {
+  const digits = String(seed).replace(/\D/g, "");
+  const index = digits ? (Number(digits) % 6) + 1 : ((appData.animals.length % 6) + 1);
+  return `assets/img/cow-${index}.svg`;
 }
 
 function formatCurrency(value) {
