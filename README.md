@@ -38,10 +38,16 @@ https://SEU_USUARIO.github.io/VitalBov/
 
 - `index.html`: telas, navegacao e estrutura semantica.
 - `assets/css/styles.css`: identidade visual rural-tech, responsividade e modo escuro.
-- `assets/js/data.js`: dados simulados de rebanho, loja, alertas e graficos.
-- `assets/js/app.js`: estado persistente, onboarding, navegacao, Leaflet, filtros, cadastro, CSV, carrinho, graficos e offline simulado.
+- `assets/js/data.js`: dados iniciais de rebanho, loja, alertas e graficos.
+- `assets/js/app.js`: IndexedDB, estado persistente, navegacao, Leaflet, filtros, cadastro, CSV, carrinho, pedidos, graficos e offline simulado.
 - `manifest.webmanifest` e `sw.js`: base para PWA e cache offline.
 - `dev-server.cjs`: servidor local simples sem dependencias externas.
+
+## Banco de dados
+
+O app usa IndexedDB como banco local no navegador, com fallback para `localStorage`. Isso permite funcionar no celular pelo GitHub Pages, inclusive offline, salvando animais, fazenda, notificacoes, carrinho, pedidos e eventos de auditoria.
+
+Para um banco remoto compartilhado entre varios celulares/usuarios, conecte a camada de persistencia em `assets/js/app.js` a um backend como Firebase, Supabase ou uma API propria. GitHub Pages hospeda apenas arquivos estaticos, entao nao executa banco de dados de servidor.
 
 ## Mapa
 

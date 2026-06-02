@@ -1,4 +1,6 @@
 const STORAGE_KEY = "vitalbov.state.v2";
+const DB_NAME = "vitalbov-db";
+const DB_VERSION = 1;
 const STATUS_LABELS = {
   healthy: "Saudavel",
   heat: "Cio",
@@ -31,6 +33,7 @@ const state = {
   ...loadSavedState()
 };
 
+let db = null;
 const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const baseData = window.VITALBOV_DATA;
@@ -38,11 +41,15 @@ const appData = {
   farm: state.farm || structuredClone(baseData.farm),
   animals: state.animals || structuredClone(baseData.animals),
   notices: state.notices || structuredClone(baseData.notices),
+  orders: state.orders || [],
+  events: state.events || [],
   products: structuredClone(baseData.products),
   chartData: structuredClone(baseData.chartData)
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await initDatabase();
+  await hydrateFromDatabase();
   bindEvents();
   renderAll();
   openView("home");
@@ -155,16 +162,157 @@ function loadSavedState() {
   }
 }
 
-function persist() {
+async function initDatabase() {
+  if (!("indexedDB" in window)) return;
+
+  try {
+    db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = () => {
+        const database = request.result;
+        createStore(database, "farms", "id");
+        createStore(database, "animals", "id");
+        createStore(database, "notices", "id");
+        createStore(database, "cart", "id");
+        createStore(database, "orders", "id");
+        createStore(database, "events", "id");
+        createStore(database, "settings", "key");
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    db = null;
+  }
+}
+
+function createStore(database, name, keyPath) {
+  if (!database.objectStoreNames.contains(name)) {
+    database.createObjectStore(name, { keyPath });
+  }
+}
+
+async function hydrateFromDatabase() {
+  if (!db) {
+    normalizeState();
+    return;
+  }
+
+  const [farms, animals, notices, cart, orders, events, settings] = await Promise.all([
+    dbGetAll("farms"),
+    dbGetAll("animals"),
+    dbGetAll("notices"),
+    dbGetAll("cart"),
+    dbGetAll("orders"),
+    dbGetAll("events"),
+    dbGetAll("settings")
+  ]);
+
+  if (farms.length) appData.farm = farms[0];
+  if (animals.length) appData.animals = animals;
+  if (notices.length) appData.notices = notices.sort((a, b) => b.createdAt - a.createdAt);
+  if (orders.length) appData.orders = orders.sort((a, b) => b.createdAt - a.createdAt);
+  if (events.length) appData.events = events.sort((a, b) => b.createdAt - a.createdAt);
+  if (cart.length) {
+    state.cart = cart.flatMap((item) => Array.from({ length: item.qty }, () => item.id));
+  }
+  settings.forEach((item) => {
+    if (item.key === "offline") state.offline = item.value;
+    if (item.key === "selectedFarm") state.selectedFarm = item.value;
+  });
+
+  normalizeState();
+
+  if (!farms.length || !animals.length) {
+    await persist();
+  }
+}
+
+function normalizeState() {
+  appData.farm.id ||= "default";
+  appData.farm.updatedAt ||= Date.now();
+  appData.animals = appData.animals.map((animal) => ({
+    ...animal,
+    updatedAt: animal.updatedAt || Date.now()
+  }));
+  appData.notices = appData.notices.map((notice) => ({
+    ...notice,
+    id: notice.id || cryptoRandomId("notice"),
+    read: Boolean(notice.read),
+    createdAt: notice.createdAt || Date.now()
+  }));
+  appData.orders = appData.orders.map((order) => ({
+    ...order,
+    id: order.id || cryptoRandomId("order"),
+    createdAt: order.createdAt || Date.now()
+  }));
+  appData.events = appData.events.map((event) => ({
+    ...event,
+    id: event.id || cryptoRandomId("event"),
+    createdAt: event.createdAt || Date.now()
+  }));
+}
+
+async function persist() {
   const payload = {
     farm: appData.farm,
     animals: appData.animals,
     notices: appData.notices,
+    orders: appData.orders,
+    events: appData.events,
     cart: state.cart,
     offline: state.offline,
     selectedFarm: state.selectedFarm
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+
+  if (!db) return;
+
+  try {
+    normalizeState();
+    await Promise.all([
+      dbReplaceAll("farms", [appData.farm]),
+      dbReplaceAll("animals", appData.animals),
+      dbReplaceAll("notices", appData.notices),
+      dbReplaceAll("orders", appData.orders),
+      dbReplaceAll("events", appData.events),
+      dbReplaceAll("cart", Object.values(groupCart()).map((item) => ({ id: item.product.id, qty: item.qty }))),
+      dbReplaceAll("settings", [
+        { key: "offline", value: state.offline },
+        { key: "selectedFarm", value: state.selectedFarm }
+      ])
+    ]);
+  } catch {
+    db = null;
+  }
+}
+
+function dbGetAll(storeName) {
+  if (!db) return Promise.resolve([]);
+  return new Promise((resolve, reject) => {
+    const request = db.transaction(storeName, "readonly").objectStore(storeName).getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function dbReplaceAll(storeName, records) {
+  if (!db) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, "readwrite");
+    const store = transaction.objectStore(storeName);
+    store.clear();
+    records.forEach((record) => store.put(record));
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+function cryptoRandomId(prefix) {
+  const random = globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${random}`;
 }
 
 function openView(view) {
@@ -422,6 +570,7 @@ function addToCart(productId) {
   if (!product) return;
   state.cart.push(productId);
   addNotice("L", "Produto adicionado", `${product.name} foi adicionado ao carrinho.`, "Agora");
+  addEvent("store.cart.add", `Produto ${product.name} adicionado ao carrinho.`);
   updateCartCount();
   persist();
 }
@@ -626,9 +775,11 @@ function saveAnimalFromForm(originalId) {
   if (existing) {
     const index = appData.animals.findIndex((item) => item.id === originalId);
     appData.animals[index] = animal;
+    addEvent("animal.update", `${animal.id} atualizado no cadastro.`);
   } else {
     appData.animals.unshift(animal);
     addNotice("A", "Animal cadastrado", `${animal.name} (${animal.id}) foi associado ao Smart Ear Tag.`, "Agora");
+    addEvent("animal.create", `${animal.id} cadastrado e associado ao Smart Ear Tag.`);
   }
 
   closeModal();
@@ -688,6 +839,7 @@ function importCsvAnimals() {
       imported += 1;
     });
     addNotice("S", "Importacao finalizada", `${imported} animais foram importados e sincronizados.`, "Agora");
+    addEvent("animal.csv_import", `${imported} animais importados via CSV.`);
     closeModal();
     persist();
     renderAll();
@@ -718,7 +870,24 @@ function openCheckout() {
 
 function finalizeOrder() {
   if (!state.cart.length) return;
+  const grouped = groupCart();
+  const total = Object.values(grouped).reduce((sum, item) => sum + item.product.price * item.qty, 0);
+  appData.orders.unshift({
+    id: cryptoRandomId("order"),
+    createdAt: Date.now(),
+    status: "confirmado",
+    items: Object.values(grouped).map((item) => ({
+      id: item.product.id,
+      name: item.product.name,
+      qty: item.qty,
+      unitPrice: item.product.price
+    })),
+    subtotal: total,
+    freight: 39.9,
+    total: total + 39.9
+  });
   addNotice("L", "Pedido confirmado", "Compra enviada para faturamento e logistica rural.", "Agora");
+  addEvent("store.order.create", `Pedido confirmado no valor de ${formatCurrency(total + 39.9)}.`);
   state.cart = [];
   closeModal();
   persist();
@@ -741,6 +910,8 @@ function openInfoPanel(panel) {
     registration: registrationPanel(),
     devices: devicesPanel(),
     reports: reportsPanel(),
+    orders: ordersPanel(),
+    database: databasePanel(),
     vaccines: vaccinesPanel(),
     vet: vetPanel(),
     education: educationPanel()
@@ -804,6 +975,40 @@ function reportsPanel() {
   `;
 }
 
+function ordersPanel() {
+  const orders = appData.orders.slice(0, 10);
+  return `
+    <div class="sheet-header"><h2>Pedidos e compras</h2><button class="close-btn" data-close-modal>x</button></div>
+    <div class="timeline">
+      ${orders.length ? orders.map((order) => `
+        <div>
+          <strong>${order.id}</strong><br>
+          ${new Date(order.createdAt).toLocaleString("pt-BR")} | ${order.status}<br>
+          ${order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}<br>
+          Total: ${formatCurrency(order.total)}
+        </div>
+      `).join("") : "<div>Nenhum pedido confirmado ainda.</div>"}
+    </div>
+  `;
+}
+
+function databasePanel() {
+  const eventRows = appData.events.slice(0, 8).map((event) => `
+    <div><strong>${event.type}</strong><br>${event.description}<br><small>${new Date(event.createdAt).toLocaleString("pt-BR")}</small></div>
+  `).join("");
+  return `
+    <div class="sheet-header"><h2>Banco de dados local</h2><button class="close-btn" data-close-modal>x</button></div>
+    <div class="detail-metrics">
+      <div><span>Status</span><strong>${db ? "IndexedDB ativo" : "Fallback localStorage"}</strong></div>
+      <div><span>Animais</span><strong>${appData.animals.length}</strong></div>
+      <div><span>Notificacoes</span><strong>${appData.notices.length}</strong></div>
+      <div><span>Eventos</span><strong>${appData.events.length}</strong></div>
+    </div>
+    <h3>Auditoria recente</h3>
+    <div class="timeline">${eventRows || "<div>Nenhum evento registrado ainda.</div>"}</div>
+  `;
+}
+
 function vaccinesPanel() {
   const total = appData.animals.length;
   return `
@@ -863,8 +1068,10 @@ function setAnimalQuarantine(id) {
   if (!animal) return;
   animal.status = "quarantine";
   animal.statusLabel = STATUS_LABELS.quarantine;
+  animal.updatedAt = Date.now();
   animal.alerts.unshift("Quarentena Digital ativada manualmente");
   addNotice("!", "Quarentena Digital", `${animal.id} foi isolado para acompanhamento sanitario.`, "Agora");
+  addEvent("animal.quarantine", `${animal.id} colocado em Quarentena Digital.`);
   closeModal();
   persist();
   renderAll();
@@ -875,7 +1082,9 @@ function registerTreatment(id) {
   const animal = findAnimal(id);
   if (!animal) return;
   animal.alerts.unshift("Tratamento registrado: avaliacao clinica e protocolo veterinario pendentes");
+  animal.updatedAt = Date.now();
   addNotice("T", "Tratamento registrado", `${animal.id} recebeu novo registro sanitario.`, "Agora");
+  addEvent("animal.treatment", `Tratamento registrado para ${animal.id}.`);
   closeModal();
   persist();
   renderAll();
@@ -884,6 +1093,7 @@ function registerTreatment(id) {
 function sendVetMessage() {
   const message = $("#vetMessageInput")?.value.trim();
   addNotice("V", "Mensagem enviada", message ? `Veterinario recebeu: ${message}` : "Mensagem enviada ao apoio veterinario.", "Agora");
+  addEvent("vet.chat", message || "Mensagem enviada ao apoio veterinario.");
   closeModal();
   persist();
   renderAll();
@@ -891,6 +1101,7 @@ function sendVetMessage() {
 
 function scheduleVetVisit() {
   addNotice("V", "Visita agendada", "Apoio veterinario agendado para hoje as 15:30.", "Agora");
+  addEvent("vet.schedule", "Visita veterinaria agendada para hoje as 15:30.");
   closeModal();
   persist();
   renderAll();
@@ -905,7 +1116,9 @@ function saveProfile() {
   appData.farm.name = $("#profileFarmInput").value.trim() || appData.farm.name;
   appData.farm.city = $("#profileCityInput").value.trim() || appData.farm.city;
   appData.farm.state = $("#profileStateInput").value.trim() || appData.farm.state;
+  appData.farm.updatedAt = Date.now();
   addNotice("P", "Perfil atualizado", "Dados do usuario e da fazenda foram salvos neste dispositivo.", "Agora");
+  addEvent("farm.update", "Dados do usuario e da fazenda atualizados.");
   closeModal();
   persist();
   renderAll();
@@ -949,6 +1162,8 @@ function exportDataBackup() {
     farm: appData.farm,
     animals: appData.animals,
     notices: appData.notices,
+    orders: appData.orders,
+    events: appData.events,
     cart: state.cart
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
@@ -963,6 +1178,8 @@ function exportDataBackup() {
 function resetLocalData() {
   if (!confirm("Restaurar os dados demo e apagar alteracoes locais?")) return;
   localStorage.removeItem(STORAGE_KEY);
+  if (db) db.close();
+  if ("indexedDB" in window) indexedDB.deleteDatabase(DB_NAME);
   window.location.reload();
 }
 
@@ -1041,7 +1258,16 @@ function toggleDarkMode() {
 }
 
 function addNotice(icon, title, text, time) {
-  appData.notices.unshift({ icon, title, text, time, read: false });
+  appData.notices.unshift({ id: cryptoRandomId("notice"), icon, title, text, time, read: false, createdAt: Date.now() });
+}
+
+function addEvent(type, description) {
+  appData.events.unshift({
+    id: cryptoRandomId("event"),
+    type,
+    description,
+    createdAt: Date.now()
+  });
 }
 
 function noticeTemplate(notice) {
