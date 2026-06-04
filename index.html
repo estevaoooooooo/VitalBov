@@ -6,11 +6,57 @@
     <meta name="theme-color" content="#577627">
     <meta name="description" content="VitalBov - monitoramento bio-comportamental para bovinos com Smart Ear Tag.">
     <title>VitalBov</title>
+    <link rel="icon" href="assets/img/cow-1.svg" type="image/svg+xml">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="assets/css/styles.css">
   </head>
   <body>
+    <section class="onboarding active" id="onboarding" aria-label="Boas-vindas VitalBov">
+      <div class="onboarding-card">
+        <div class="brand-lockup">
+          <span class="brand-mark"><svg><use href="#icon-cow"></use></svg></span>
+          <div>
+            <p class="kicker">Colatina - Espirito Santo</p>
+            <h1>VitalBov</h1>
+          </div>
+        </div>
+        <div class="onboarding-steps" id="onboardingSteps">
+          <article class="onboarding-step active" data-step="0">
+            <span class="feature-icon"><svg><use href="#icon-tag"></use></svg></span>
+            <h2>Smart Ear Tag conectado ao campo</h2>
+            <p>Sensores de temperatura, acelerometro 3D e Edge Computing acompanham cada bovino mesmo em areas com conexao instavel.</p>
+          </article>
+          <article class="onboarding-step" data-step="1">
+            <span class="feature-icon"><svg><use href="#icon-bell"></use></svg></span>
+            <h2>Alertas sanitarios e reprodutivos</h2>
+            <p>Detecte cio, febre, prostracao, queda de ruminacao e ative Quarentena Digital antes que o problema avance.</p>
+          </article>
+          <article class="onboarding-step" data-step="2">
+            <span class="feature-icon"><svg><use href="#icon-map"></use></svg></span>
+            <h2>Rastreabilidade com mapa vivo</h2>
+            <p>Visualize animais por status em Leaflet, filtre lotes e mantenha historico para certificacao, manejo e exportacao.</p>
+          </article>
+          <article class="onboarding-step" data-step="3">
+            <span class="feature-icon"><svg><use href="#icon-file"></use></svg></span>
+            <h2>Cadastro pronto para operar</h2>
+            <p>Informe produtor, fazenda e rebanho. Fotos e alteracoes ficam salvas offline e sincronizam quando a rede voltar.</p>
+            <div class="mini-form">
+              <label class="form-field"><span>Nome completo</span><input id="onboardOwner" type="text" value="Ana Martins"></label>
+              <label class="form-field"><span>E-mail</span><input id="onboardEmail" type="email" value="ana@fazendaboavista.com"></label>
+              <label class="form-field"><span>Fazenda</span><input id="onboardFarm" type="text" value="Fazenda Boa Vista"></label>
+              <label class="form-field"><span>Tamanho do rebanho</span><input id="onboardHerd" type="number" value="486"></label>
+            </div>
+          </article>
+        </div>
+        <div class="onboarding-progress" id="onboardingDots"></div>
+        <div class="onboarding-actions">
+          <button class="btn btn-ghost" id="skipOnboarding">Pular</button>
+          <button class="btn btn-primary" id="nextOnboarding">Continuar</button>
+        </div>
+      </div>
+    </section>
+
     <div class="app-shell" id="app">
       <main class="main-app" id="mainApp">
         <header class="topbar">
@@ -68,6 +114,19 @@
             </div>
             <button class="btn btn-light" data-open-view="animals">Ver animais</button>
           </article>
+
+          <section class="panel">
+            <div class="section-title">
+              <h2>Operacao rural-tech</h2>
+              <button class="text-btn" id="installPwaButton" hidden>Instalar app</button>
+            </div>
+            <div class="quick-grid">
+              <button class="quick-action" data-open-panel="vet"><svg><use href="#icon-chat"></use></svg><span>Apoio vet</span><strong>Online</strong></button>
+              <button class="quick-action" data-open-panel="education"><svg><use href="#icon-book"></use></svg><span>Pecuaria 4.0</span><strong>12 aulas</strong></button>
+              <button class="quick-action" data-open-panel="reports"><svg><use href="#icon-file"></use></svg><span>Relatorios</span><strong>PDF</strong></button>
+              <button class="quick-action" data-open-panel="devices"><svg><use href="#icon-tag"></use></svg><span>Tags</span><strong id="quickTagCount">0 ativos</strong></button>
+            </div>
+          </section>
 
           <section class="panel">
             <div class="section-title">

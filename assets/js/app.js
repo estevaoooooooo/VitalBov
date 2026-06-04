@@ -21,6 +21,9 @@ const state = {
   cart: [],
   storeCategory: "Todos",
   trackingQuery: "",
+  onboardingSeen: false,
+  onboardingStep: 0,
+  deferredInstallPrompt: null,
   filters: {
     status: "Todos",
     lot: "Todos"
@@ -51,6 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await initDatabase();
   await hydrateFromDatabase();
   bindEvents();
+  initOnboarding();
   renderAll();
   openView("home");
   startTelemetry();
@@ -140,6 +144,14 @@ function bindEvents() {
   $("#openFilters").addEventListener("click", openFilters);
   $("#farmSwitch").addEventListener("click", openFarmSwitcher);
   $("#darkModeToggle").addEventListener("click", toggleDarkMode);
+  $("#skipOnboarding").addEventListener("click", completeOnboarding);
+  $("#nextOnboarding").addEventListener("click", nextOnboardingStep);
+  $("#installPwaButton").addEventListener("click", installPwa);
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    state.deferredInstallPrompt = event;
+    $("#installPwaButton").hidden = false;
+  });
   document.addEventListener("change", (event) => {
     if (event.target.matches("#animalPhotoInput")) previewAnimalPhoto(event.target);
   });
@@ -227,6 +239,7 @@ async function hydrateFromDatabase() {
   settings.forEach((item) => {
     if (item.key === "offline") state.offline = item.value;
     if (item.key === "selectedFarm") state.selectedFarm = item.value;
+    if (item.key === "onboardingSeen") state.onboardingSeen = item.value;
   });
 
   normalizeState();
@@ -271,7 +284,8 @@ async function persist() {
     events: appData.events,
     cart: state.cart,
     offline: state.offline,
-    selectedFarm: state.selectedFarm
+    selectedFarm: state.selectedFarm,
+    onboardingSeen: state.onboardingSeen
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
@@ -288,7 +302,8 @@ async function persist() {
       dbReplaceAll("cart", Object.values(groupCart()).map((item) => ({ id: item.product.id, qty: item.qty }))),
       dbReplaceAll("settings", [
         { key: "offline", value: state.offline },
-        { key: "selectedFarm", value: state.selectedFarm }
+        { key: "selectedFarm", value: state.selectedFarm },
+        { key: "onboardingSeen", value: state.onboardingSeen }
       ])
     ]);
   } catch {
@@ -373,6 +388,8 @@ function renderDashboard() {
   }
 
   appData.chartData = buildChartData();
+  const quickTagCount = $("#quickTagCount");
+  if (quickTagCount) quickTagCount.textContent = `${total} ativos`;
 }
 
 function buildChartData() {
@@ -546,7 +563,7 @@ function renderStore() {
   });
 
   $("#productGrid").innerHTML = products.map((product) => `
-    <article class="product-card">
+    <article class="product-card ${isRecommendedProduct(product) ? "recommended" : ""}">
       <div class="product-media"><svg><use href="#icon-tag"></use></svg></div>
       <div class="product-body">
         <h3>${product.name}</h3>
@@ -570,6 +587,84 @@ function renderProfile() {
   $("#profileAvatar").textContent = initials(appData.farm.owner);
   const devices = $("#view-profile [data-open-panel='devices'] span");
   if (devices) devices.textContent = `${appData.animals.length} ativos`;
+}
+
+function initOnboarding() {
+  if (state.onboardingSeen) {
+    closeOnboarding();
+    return;
+  }
+  document.body.classList.add("onboarding-open");
+  $("#onboarding").classList.add("active");
+  renderOnboardingStep();
+}
+
+function renderOnboardingStep() {
+  $$(".onboarding-step").forEach((step) => {
+    step.classList.toggle("active", Number(step.dataset.step) === state.onboardingStep);
+  });
+  $("#onboardingDots").innerHTML = $$(".onboarding-step").map((step, index) => `
+    <button class="${index === state.onboardingStep ? "active" : ""}" aria-label="Ir para etapa ${index + 1}" data-onboarding-dot="${index}"></button>
+  `).join("");
+  $$("#onboardingDots button").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.onboardingStep = Number(button.dataset.onboardingDot);
+      renderOnboardingStep();
+    });
+  });
+  $("#nextOnboarding").textContent = state.onboardingStep === 3 ? "Comecar operacao" : "Continuar";
+}
+
+function nextOnboardingStep() {
+  if (state.onboardingStep < 3) {
+    state.onboardingStep += 1;
+    renderOnboardingStep();
+    return;
+  }
+  completeOnboarding();
+}
+
+function completeOnboarding() {
+  const owner = $("#onboardOwner")?.value.trim();
+  const email = $("#onboardEmail")?.value.trim();
+  const farm = $("#onboardFarm")?.value.trim();
+  const herd = Number($("#onboardHerd")?.value || appData.animals.length);
+  if (owner) appData.farm.owner = owner;
+  if (email) appData.farm.email = email;
+  if (farm) appData.farm.name = farm;
+  appData.farm.herdSize = herd || appData.animals.length;
+  appData.farm.verified = true;
+  state.onboardingSeen = true;
+  addNotice("V", "E-mail verificado", "Cadastro inicial confirmado e fazenda pronta para monitoramento.", "Agora");
+  addEvent("onboarding.complete", "Cadastro inicial do produtor e fazenda concluido.");
+  closeOnboarding();
+  persist();
+  renderAll();
+}
+
+function closeOnboarding() {
+  document.body.classList.remove("onboarding-open");
+  $("#onboarding").classList.remove("active");
+}
+
+async function installPwa() {
+  if (!state.deferredInstallPrompt) {
+    addNotice("P", "PWA pronto", "Use o menu do navegador para adicionar o VitalBov a tela inicial.", "Agora");
+    renderNotices();
+    return;
+  }
+  state.deferredInstallPrompt.prompt();
+  await state.deferredInstallPrompt.userChoice.catch(() => null);
+  state.deferredInstallPrompt = null;
+  $("#installPwaButton").hidden = true;
+}
+
+function isRecommendedProduct(product) {
+  const hasAlert = appData.animals.some((animal) => animal.status === "alert" || animal.status === "quarantine");
+  const hasHeat = appData.animals.some((animal) => animal.status === "heat");
+  if (hasAlert && ["Sanidade", "Vacinas", "Servicos"].includes(product.category)) return true;
+  if (hasHeat && product.name.toLowerCase().includes("vet")) return true;
+  return product.id === "p1" && appData.animals.length < (appData.farm.herdSize || appData.animals.length);
 }
 
 function addToCart(productId) {

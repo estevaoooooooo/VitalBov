@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitalbov-v5";
+const CACHE_NAME = "vitalbov-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -30,13 +30,24 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const requestUrl = new URL(event.request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+
+  if (!isSameOrigin) {
+    event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return cached || fetch(event.request).then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
-      }).catch(() => caches.match("./index.html"));
+      }).catch(() => {
+        if (event.request.mode === "navigate") return caches.match("./index.html");
+        return caches.match(event.request);
+      });
     })
   );
 });
