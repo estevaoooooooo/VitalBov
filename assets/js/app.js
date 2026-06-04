@@ -13,6 +13,8 @@ const STATUS_COLORS = {
   alert: "#bc3f32",
   quarantine: "#111111"
 };
+const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 
 const state = {
   activeView: "home",
@@ -32,6 +34,7 @@ const state = {
   map: null,
   markersLayer: null,
   mapReady: false,
+  leafletLoading: false,
   telemetryTimer: null,
   ...loadSavedState()
 };
@@ -478,6 +481,9 @@ function animalRow(animal) {
 function initLeafletMap() {
   if (!window.L) {
     renderFallbackMap();
+    loadLeafletAssets().then((loaded) => {
+      if (loaded && state.activeView === "tracking") initLeafletMap();
+    });
     return;
   }
   $("#mapFallback").hidden = true;
@@ -496,6 +502,43 @@ function initLeafletMap() {
   }
   state.mapReady = true;
   updateMapMarkers();
+}
+
+function loadLeafletAssets() {
+  if (window.L) return Promise.resolve(true);
+  if (state.leafletLoading) return state.leafletLoading;
+
+  state.leafletLoading = new Promise((resolve) => {
+    if (!document.querySelector(`link[href="${LEAFLET_CSS_URL}"]`)) {
+      const style = document.createElement("link");
+      style.rel = "stylesheet";
+      style.href = LEAFLET_CSS_URL;
+      document.head.appendChild(style);
+    }
+
+    if (document.querySelector(`script[src="${LEAFLET_JS_URL}"]`)) {
+      resolve(Boolean(window.L));
+      return;
+    }
+
+    const script = document.createElement("script");
+    const timeout = window.setTimeout(() => resolve(false), 4500);
+    script.src = LEAFLET_JS_URL;
+    script.async = true;
+    script.onload = () => {
+      window.clearTimeout(timeout);
+      resolve(Boolean(window.L));
+    };
+    script.onerror = () => {
+      window.clearTimeout(timeout);
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  }).finally(() => {
+    state.leafletLoading = false;
+  });
+
+  return state.leafletLoading;
 }
 
 function updateMapMarkers() {
