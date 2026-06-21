@@ -44,13 +44,13 @@ const $ = (selector, scope = document) => scope.querySelector(selector);
 const $$ = (selector, scope = document) => [...scope.querySelectorAll(selector)];
 const baseData = window.VITALBOV_DATA;
 const appData = {
-  farm: state.farm || structuredClone(baseData.farm),
-  animals: state.animals || structuredClone(baseData.animals),
-  notices: state.notices || structuredClone(baseData.notices),
+  farm: state.farm || cloneData(baseData.farm),
+  animals: state.animals || cloneData(baseData.animals),
+  notices: state.notices || cloneData(baseData.notices),
   orders: state.orders || [],
   events: state.events || [],
-  products: structuredClone(baseData.products),
-  chartData: structuredClone(baseData.chartData)
+  products: cloneData(baseData.products),
+  chartData: cloneData(baseData.chartData)
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -181,6 +181,11 @@ function loadSavedState() {
   } catch {
     return {};
   }
+}
+
+function cloneData(value) {
+  if (typeof structuredClone === "function") return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
 }
 
 async function initDatabase() {
@@ -772,7 +777,7 @@ function drawChart() {
 
   ctx.beginPath();
   points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
-  ctx.lineTo(points.at(-1).x, height - padding);
+  ctx.lineTo(points[points.length - 1].x, height - padding);
   ctx.lineTo(points[0].x, height - padding);
   ctx.closePath();
   ctx.fillStyle = gradient;

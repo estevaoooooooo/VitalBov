@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitalbov-v7";
+const CACHE_NAME = "vitalbov-v8";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,7 +11,8 @@ const ASSETS = [
   "./assets/img/cow-3.svg",
   "./assets/img/cow-4.svg",
   "./assets/img/cow-5.svg",
-  "./assets/img/cow-6.svg"
+  "./assets/img/cow-6.svg",
+  "./assets/img/vitalbov-logo.jpeg"
 ];
 
 self.addEventListener("install", (event) => {

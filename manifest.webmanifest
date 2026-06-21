@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "assets/img/cow-1.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "assets/img/vitalbov-logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]
