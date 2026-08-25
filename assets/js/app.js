@@ -106,6 +106,9 @@ function bindEvents() {
     const reportButton = event.target.closest("[data-print-report]");
     if (reportButton) generateReport(reportButton.dataset.printReport);
 
+    const chipButton = event.target.closest("[data-read-chip]");
+    if (chipButton) readChipTelemetry(chipButton.dataset.readChip);
+
     const orderButton = event.target.closest("[data-finalize-order]");
     if (orderButton) finalizeOrder();
 
@@ -260,11 +263,15 @@ async function hydrateFromDatabase() {
 function normalizeState() {
   appData.farm.id ||= "default";
   appData.farm.updatedAt ||= Date.now();
-  appData.animals = appData.animals.map((animal) => ({
-    ...animal,
-    photo: animal.photo || defaultAnimalPhoto(animal.id),
-    updatedAt: animal.updatedAt || Date.now()
-  }));
+  appData.animals = appData.animals.map((animal, index) => {
+    const baseChip = index === 0 ? baseData.animals[0]?.chip : null;
+    return {
+      ...animal,
+      chip: baseChip ? { ...baseChip, ...animal.chip, enabled: true, animalId: animal.id } : undefined,
+      photo: animal.photo || defaultAnimalPhoto(animal.id),
+      updatedAt: animal.updatedAt || Date.now()
+    };
+  });
   appData.notices = appData.notices.map((notice) => ({
     ...notice,
     id: notice.id || cryptoRandomId("notice"),
@@ -810,6 +817,7 @@ function drawChart() {
 function openAnimalDetail(id) {
   const animal = findAnimal(id);
   if (!animal) return;
+  const chip = animal.chip?.enabled ? chipTelemetryPanel(animal) : "";
 
   openModal(`
     <div class="sheet-header">
@@ -830,6 +838,7 @@ function openAnimalDetail(id) {
       <div><span>Ruminacao</span><strong>${animal.rumination}</strong></div>
       <div><span>Comportamento</span><strong>${animal.behavior}</strong></div>
     </div>
+    ${chip}
     <section class="panel">
       <div class="section-title"><h2>Status reprodutivo</h2><span class="status-badge heat">${animal.reproductive}</span></div>
       <canvas id="animalChart" height="150"></canvas>
@@ -843,6 +852,58 @@ function openAnimalDetail(id) {
     <button class="btn btn-secondary" style="width:100%" data-edit-animal="${animal.id}">Editar animal</button>
   `);
   setTimeout(() => drawTinyAnimalChart(animal), 0);
+}
+
+function chipTelemetryPanel(animal) {
+  const chip = animal.chip;
+  return `
+    <section class="panel chip-panel">
+      <div class="section-title">
+        <h2>Chip prototipo</h2>
+        <span class="status-badge healthy">${chip.board} + ${chip.sensor}</span>
+      </div>
+      <div class="detail-metrics">
+        <div><span>Animal vinculado</span><strong>${chip.animalId}</strong></div>
+        <div><span>Batimentos</span><strong>${chip.heartRate} bpm</strong></div>
+        <div><span>Oxigenacao</span><strong>${chip.spo2}%</strong></div>
+        <div><span>Sinal MAX30102</span><strong>${chip.signal}</strong></div>
+      </div>
+      <div class="chip-note">Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
+      <button class="btn btn-secondary" style="width:100%;margin-top:10px" data-read-chip="${animal.id}">Ler chip agora</button>
+    </section>
+  `;
+}
+
+async function readChipTelemetry(id) {
+  const animal = findAnimal(id);
+  if (!animal?.chip?.enabled) return;
+
+  try {
+    const response = await fetch(animal.chip.endpoint, { cache: "no-store" });
+    if (!response.ok) throw new Error("telemetry unavailable");
+
+    const telemetry = await response.json();
+    if (telemetry.animalId !== animal.id) {
+      addNotice("!", "Chip ignorado", `Leitura recebida de ${telemetry.animalId || "animal desconhecido"}, nao de ${animal.id}.`, "Agora");
+      renderNotices();
+      return;
+    }
+
+    animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
+    animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
+    animal.chip.signal = telemetry.signal || animal.chip.signal;
+    animal.lastSeen = "Agora";
+    animal.updatedAt = Date.now();
+    addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32-C3/MAX30102.`, "Agora");
+    addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32-C3/MAX30102.`);
+    persist();
+    closeModal();
+    openAnimalDetail(animal.id);
+    renderAll();
+  } catch {
+    addNotice("!", "Chip sem conexao", `Conecte o celular ao Wi-Fi ${animal.chip.ssid} e tente novamente.`, "Agora");
+    renderNotices();
+  }
 }
 
 function drawTinyAnimalChart(animal) {

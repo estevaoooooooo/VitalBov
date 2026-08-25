@@ -1076,6 +1076,17 @@ body.dark .map-legend {
   font-size: 0.8rem;
 }
 
+.chip-panel .detail-metrics {
+  margin-bottom: 8px;
+}
+
+.chip-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .timeline {
   display: grid;
   gap: 10px;

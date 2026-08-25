@@ -28,6 +28,18 @@ window.VITALBOV_DATA = {
       coords: [-19.5358, -40.6289],
       battery: 76,
       lastSeen: "Agora",
+      chip: {
+        enabled: true,
+        animalId: "VB-219",
+        board: "ESP32-C3",
+        sensor: "MAX30102",
+        firmware: "vitalbov-esp32c3-max30102",
+        ssid: "VitalBov-VB-219",
+        endpoint: "http://192.168.4.1/telemetry",
+        heartRate: 72,
+        spo2: 97,
+        signal: "Estavel"
+      },
       history: {
         temp: [38.5, 38.7, 39.0, 39.2, 39.6, 39.8, 39.9],
         rumination: [420, 398, 376, 348, 330, 318, 312],
