@@ -383,9 +383,12 @@ function renderDashboard() {
   $("#metricHeatHelp").textContent = `${heat} vacas`;
   $("#metricAlert").textContent = percent(alert, total);
   $("#metricAlertHelp").textContent = `${alert} casos`;
+  const chipAnimal = appData.animals.find((animal) => animal.chip?.enabled);
   $("#syncStatus").textContent = state.offline
     ? `Offline - ${appData.farm.pendingSync} leituras aguardando sincronizacao`
-    : "Online - LoRaWAN estavel";
+    : chipAnimal
+      ? `Online - chip ${chipAnimal.chip.board}/${chipAnimal.chip.sensor} ativo em ${chipAnimal.id}`
+      : "Online - LoRaWAN estavel";
   $("#toggleOffline").textContent = state.offline ? "Sincronizar" : "Simular offline";
 
   const priority = appData.animals.find((animal) => animal.status === "quarantine")
@@ -465,12 +468,13 @@ function getFilteredAnimals() {
 }
 
 function animalCard(animal) {
+  const chipLabel = animal.chip?.enabled ? ` | chip ${animal.chip.board}` : "";
   return `
     <button class="animal-card" data-open-animal="${animal.id}">
       <img class="animal-thumb" src="${animal.photo}" alt="Foto de ${animal.name}">
       <div>
         <strong>${animal.name} - ${animal.id}</strong>
-        <p>${animal.breed} | ${animal.lot} | bateria ${animal.battery}%</p>
+        <p>${animal.breed} | ${animal.lot} | bateria ${animal.battery}%${chipLabel}</p>
       </div>
       <span class="status-badge ${animal.status}">${animal.statusLabel}</span>
     </button>
