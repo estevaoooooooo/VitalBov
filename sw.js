@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitalbov-v8";
+const CACHE_NAME = "vitalbov-v9";
 const ASSETS = [
   "./",
   "./index.html",
@@ -40,14 +40,15 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      }).catch(() => {
+    fetch(event.request).then((response) => {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+      return response;
+    }).catch(() => {
+      return caches.match(event.request).then((cached) => {
+        if (cached) return cached;
         if (event.request.mode === "navigate") return caches.match("./index.html");
-        return caches.match(event.request);
+        return Response.error();
       });
     })
   );
