@@ -1087,6 +1087,13 @@ body.dark .map-legend {
   overflow-wrap: anywhere;
 }
 
+.chip-live-status {
+  margin-top: 8px;
+  color: var(--green-dark);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
 .timeline {
   display: grid;
   gap: 10px;

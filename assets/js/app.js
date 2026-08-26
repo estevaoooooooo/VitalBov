@@ -36,6 +36,8 @@ const state = {
   mapReady: false,
   leafletLoading: false,
   telemetryTimer: null,
+  chipRealtimeTimer: null,
+  activeChipAnimalId: null,
   ...loadSavedState()
 };
 
@@ -822,6 +824,7 @@ function openAnimalDetail(id) {
   const animal = findAnimal(id);
   if (!animal) return;
   const chip = animal.chip?.enabled ? chipTelemetryPanel(animal) : "";
+  stopChipRealtime();
 
   openModal(`
     <div class="sheet-header">
@@ -856,6 +859,7 @@ function openAnimalDetail(id) {
     <button class="btn btn-secondary" style="width:100%" data-edit-animal="${animal.id}">Editar animal</button>
   `);
   setTimeout(() => drawTinyAnimalChart(animal), 0);
+  if (animal.chip?.enabled) startChipRealtime(animal.id);
 }
 
 function chipTelemetryPanel(animal) {
@@ -868,19 +872,36 @@ function chipTelemetryPanel(animal) {
       </div>
       <div class="detail-metrics">
         <div><span>Animal vinculado</span><strong>${chip.animalId}</strong></div>
-        <div><span>Batimentos</span><strong>${chip.heartRate} bpm</strong></div>
-        <div><span>Oxigenacao</span><strong>${chip.spo2}%</strong></div>
-        <div><span>Sinal MAX30102</span><strong>${chip.signal}</strong></div>
+        <div><span>Batimentos</span><strong id="chipHeartRate">${chip.heartRate} bpm</strong></div>
+        <div><span>Oxigenacao</span><strong id="chipSpo2">${chip.spo2}%</strong></div>
+        <div><span>Sinal MAX30102</span><strong id="chipSignal">${chip.signal}</strong></div>
       </div>
-      <div class="chip-note">Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
+      <div class="chip-note">Tempo real ativo a cada 3s. Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
+      <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <button class="btn btn-secondary" style="width:100%;margin-top:10px" data-read-chip="${animal.id}">Ler chip agora</button>
     </section>
   `;
 }
 
-async function readChipTelemetry(id) {
+function startChipRealtime(id) {
+  state.activeChipAnimalId = id;
+  readChipTelemetry(id, { silent: true });
+  state.chipRealtimeTimer = setInterval(() => {
+    readChipTelemetry(id, { silent: true });
+  }, 3000);
+}
+
+function stopChipRealtime() {
+  if (state.chipRealtimeTimer) clearInterval(state.chipRealtimeTimer);
+  state.chipRealtimeTimer = null;
+  state.activeChipAnimalId = null;
+}
+
+async function readChipTelemetry(id, options = {}) {
   const animal = findAnimal(id);
   if (!animal?.chip?.enabled) return;
+  const liveStatus = $("#chipLiveStatus");
+  if (liveStatus) liveStatus.textContent = "Lendo chip...";
 
   try {
     const response = await fetch(animal.chip.endpoint, { cache: "no-store" });
@@ -898,16 +919,32 @@ async function readChipTelemetry(id) {
     animal.chip.signal = telemetry.signal || animal.chip.signal;
     animal.lastSeen = "Agora";
     animal.updatedAt = Date.now();
-    addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32-C3/MAX30102.`, "Agora");
-    addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32-C3/MAX30102.`);
+    updateChipPanel(animal);
+    if (!options.silent) {
+      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32-C3/MAX30102.`, "Agora");
+      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32-C3/MAX30102.`);
+    }
     persist();
-    closeModal();
-    openAnimalDetail(animal.id);
     renderAll();
   } catch {
-    addNotice("!", "Chip sem conexao", `Conecte o celular ao Wi-Fi ${animal.chip.ssid} e tente novamente.`, "Agora");
-    renderNotices();
+    if (liveStatus) liveStatus.textContent = `Sem conexao. Conecte no Wi-Fi ${animal.chip.ssid}.`;
+    if (!options.silent) {
+      addNotice("!", "Chip sem conexao", `Conecte o celular ao Wi-Fi ${animal.chip.ssid} e tente novamente.`, "Agora");
+      renderNotices();
+    }
   }
+}
+
+function updateChipPanel(animal) {
+  const heartRate = $("#chipHeartRate");
+  const spo2 = $("#chipSpo2");
+  const signal = $("#chipSignal");
+  const liveStatus = $("#chipLiveStatus");
+
+  if (heartRate) heartRate.textContent = `${animal.chip.heartRate} bpm`;
+  if (spo2) spo2.textContent = `${animal.chip.spo2}%`;
+  if (signal) signal.textContent = animal.chip.signal;
+  if (liveStatus) liveStatus.textContent = `Atualizado agora para ${animal.id}.`;
 }
 
 function drawTinyAnimalChart(animal) {
@@ -1586,6 +1623,7 @@ function openModal(content) {
 }
 
 function closeModal() {
+  stopChipRealtime();
   $("#modalRoot").classList.remove("active");
   $("#modalRoot").innerHTML = "";
 }

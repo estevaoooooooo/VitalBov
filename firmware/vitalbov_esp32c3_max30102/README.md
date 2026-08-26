@@ -26,6 +26,23 @@ Instale:
 
 Selecione uma placa ESP32-C3 na Arduino IDE e grave `vitalbov_esp32c3_max30102.ino`.
 
+## Gravar na placa
+
+Sim, precisa passar codigo para a placa. O arquivo que deve ser gravado no ESP32-C3 e:
+
+```text
+firmware/vitalbov_esp32c3_max30102/vitalbov_esp32c3_max30102.ino
+```
+
+Passos:
+
+1. Abra a Arduino IDE.
+2. Instale o pacote de placas ESP32.
+3. Instale a biblioteca `SparkFun MAX3010x Pulse and Proximity Sensor Library`.
+4. Abra `vitalbov_esp32c3_max30102.ino`.
+5. Selecione sua placa ESP32-C3 e a porta USB.
+6. Clique em upload/gravar.
+
 ## Wi-Fi
 
 Por padrao o chip cria uma rede propria:
