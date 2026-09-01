@@ -15,7 +15,7 @@ VB-219 - Estrela
 
 ## Ligacao dos pinos
 
-Os dois sensores usam o mesmo barramento I2C do ESP32:
+Os sensores usam barramentos I2C separados no ESP32:
 
 ```text
 ESP32 3V3  -> MPU6050 VCC/VIN
@@ -25,11 +25,11 @@ ESP32 GPIO 22 -> MPU6050 SCL
 
 ESP32 3V3  -> MAX30102 VIN/VCC
 ESP32 GND  -> MAX30102 GND
-ESP32 GPIO 21 -> MAX30102 SDA
-ESP32 GPIO 22 -> MAX30102 SCL
+ESP32 GPIO 16 -> MAX30102 SDA
+ESP32 GPIO 17 -> MAX30102 SCL
 ```
 
-Ou seja: `SDA` dos dois sensores vai junto no `GPIO 21`, e `SCL` dos dois sensores vai junto no `GPIO 22`.
+No firmware, o MPU6050 usa `Wire` e o MAX30102 usa `Wire1`, por isso cada sensor fica em portas diferentes.
 
 Nao precisa ligar o pino `INT` de nenhum sensor neste firmware.
 

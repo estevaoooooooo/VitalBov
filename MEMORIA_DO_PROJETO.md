@@ -79,7 +79,7 @@ A pasta antiga `firmware\vitalbov_esp32c3_max30102` ficou como historico da prim
 
 ## Ligacao dos pinos
 
-Conectar os dois sensores no mesmo I2C do ESP32:
+Conectar os dois sensores em portas I2C diferentes no ESP32:
 
 ```text
 MPU6050 VCC/VIN -> ESP32 3V3
@@ -89,8 +89,8 @@ MPU6050 SCL     -> ESP32 GPIO 22
 
 MAX30102 VIN/VCC -> ESP32 3V3
 MAX30102 GND     -> ESP32 GND
-MAX30102 SDA     -> ESP32 GPIO 21
-MAX30102 SCL     -> ESP32 GPIO 22
+MAX30102 SDA     -> ESP32 GPIO 16
+MAX30102 SCL     -> ESP32 GPIO 17
 ```
 
 Os pinos `INT` dos sensores nao sao necessarios para o firmware atual.
@@ -98,8 +98,10 @@ Os pinos `INT` dos sensores nao sao necessarios para o firmware atual.
 No codigo:
 
 ```cpp
-static const uint8_t I2C_SDA_PIN = 21;
-static const uint8_t I2C_SCL_PIN = 22;
+static const uint8_t MPU_SDA_PIN = 21;
+static const uint8_t MPU_SCL_PIN = 22;
+static const uint8_t MAX_SDA_PIN = 16;
+static const uint8_t MAX_SCL_PIN = 17;
 ```
 
 ## Codigo que precisa gravar na placa

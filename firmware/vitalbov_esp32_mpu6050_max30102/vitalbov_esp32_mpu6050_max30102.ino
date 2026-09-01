@@ -12,8 +12,10 @@ static const char *DEVICE_ID = "VitalBov-ESP32-MPU6050-MAX30102-001";
 static const char *AP_SSID = "VitalBov-VB-219";
 static const char *AP_PASSWORD = "vitalbov219";
 
-static const uint8_t I2C_SDA_PIN = 21;
-static const uint8_t I2C_SCL_PIN = 22;
+static const uint8_t MPU_SDA_PIN = 21;
+static const uint8_t MPU_SCL_PIN = 22;
+static const uint8_t MAX_SDA_PIN = 16;
+static const uint8_t MAX_SCL_PIN = 17;
 static const uint8_t MPU6050_ADDR = 0x68;
 
 static const uint32_t MOTION_SAMPLE_INTERVAL_MS = 50;
@@ -22,6 +24,7 @@ static const float SWAY_HEAT_THRESHOLD = 62.0f;
 static const float MOVEMENT_HEAT_THRESHOLD = 58.0f;
 
 WebServer server(80);
+TwoWire maxWire = TwoWire(1);
 MAX30105 maxSensor;
 
 bool mpuReady = false;
@@ -237,7 +240,7 @@ void setupMpu6050() {
 }
 
 void setupMax30102() {
-  maxReady = maxSensor.begin(Wire, I2C_SPEED_FAST);
+  maxReady = maxSensor.begin(maxWire, I2C_SPEED_FAST);
   if (!maxReady) return;
 
   byte ledBrightness = 0x2A;
@@ -255,8 +258,10 @@ void setupMax30102() {
 }
 
 void setupSensors() {
-  Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
+  Wire.begin(MPU_SDA_PIN, MPU_SCL_PIN);
   Wire.setClock(400000);
+  maxWire.begin(MAX_SDA_PIN, MAX_SCL_PIN);
+  maxWire.setClock(400000);
   setupMpu6050();
   setupMax30102();
 }
