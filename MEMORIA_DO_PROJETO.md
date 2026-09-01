@@ -52,39 +52,48 @@ Depois abrir:
 http://127.0.0.1:4173
 ```
 
-## Prototipo atual: ESP32 + MPU6050
+## Prototipo atual: ESP32 + MPU6050 + MAX30102
 
 O projeto foi alterado para usar:
 
 - Placa: ESP32 normal / ESP32 DevKit
 - Sensor: MPU6050, com acelerometro e giroscopio
+- Sensor: MAX30102, para batimentos e oxigenacao
 - Animal vinculado: `VB-219 - Estrela`
 
-O objetivo do sensor agora e detectar movimento e balanceio para indicar possivel cio.
+O objetivo agora e juntar:
+
+- movimento e balanceio para indicar possivel cio;
+- batimentos e oxigenacao para sinais vitais.
 
 Importante: o chip continua configurado para funcionar somente no primeiro animal do app, `VB-219`.
 
 Arquivos do firmware atual:
 
 ```text
-firmware\vitalbov_esp32_mpu6050\README.md
-firmware\vitalbov_esp32_mpu6050\vitalbov_esp32_mpu6050.ino
+firmware\vitalbov_esp32_mpu6050_max30102\README.md
+firmware\vitalbov_esp32_mpu6050_max30102\vitalbov_esp32_mpu6050_max30102.ino
 ```
 
-A pasta antiga `firmware\vitalbov_esp32c3_max30102` ficou apenas como historico da primeira versao.
+A pasta antiga `firmware\vitalbov_esp32c3_max30102` ficou como historico da primeira versao. A versao intermediaria so com MPU6050 foi removida para evitar confusao.
 
 ## Ligacao dos pinos
 
-Conectar o MPU6050 no ESP32 assim:
+Conectar os dois sensores no mesmo I2C do ESP32:
 
 ```text
-MPU6050 VCC -> ESP32 3V3
-MPU6050 GND -> ESP32 GND
-MPU6050 SDA -> ESP32 GPIO 21
-MPU6050 SCL -> ESP32 GPIO 22
+MPU6050 VCC/VIN -> ESP32 3V3
+MPU6050 GND     -> ESP32 GND
+MPU6050 SDA     -> ESP32 GPIO 21
+MPU6050 SCL     -> ESP32 GPIO 22
+
+MAX30102 VIN/VCC -> ESP32 3V3
+MAX30102 GND     -> ESP32 GND
+MAX30102 SDA     -> ESP32 GPIO 21
+MAX30102 SCL     -> ESP32 GPIO 22
 ```
 
-O pino `INT` do MPU6050 nao e necessario para o firmware atual.
+Os pinos `INT` dos sensores nao sao necessarios para o firmware atual.
 
 No codigo:
 
@@ -97,10 +106,10 @@ static const uint8_t I2C_SCL_PIN = 22;
 
 Sim, precisa gravar codigo no ESP32.
 
-Arquivo para abrir na Arduino IDE:
+Arquivo correto para abrir na Arduino IDE:
 
 ```text
-C:\Users\Estevaoooooo\OneDrive\Documentos\VitalBov\firmware\vitalbov_esp32_mpu6050\vitalbov_esp32_mpu6050.ino
+C:\Users\Estevaoooooo\OneDrive\Documentos\VitalBov\firmware\vitalbov_esp32_mpu6050_max30102\vitalbov_esp32_mpu6050_max30102.ino
 ```
 
 Bibliotecas usadas:
@@ -109,9 +118,10 @@ Bibliotecas usadas:
 Wire
 WiFi
 WebServer
+SparkFun MAX3010x Pulse and Proximity Sensor Library
 ```
 
-Elas vem com o pacote ESP32 da Arduino IDE. Nao precisa biblioteca extra para o MPU6050, porque o codigo le os registradores diretamente.
+`Wire`, `WiFi` e `WebServer` vem com o pacote ESP32 da Arduino IDE. A biblioteca SparkFun e necessaria para o MAX30102.
 
 ## Rede criada pelo ESP32
 
@@ -135,9 +145,11 @@ O JSON de `/telemetry` sempre envia:
 ```json
 {
   "animalId": "VB-219",
-  "deviceId": "VitalBov-ESP32-MPU6050-001",
-  "sensor": "MPU6050",
+  "deviceId": "VitalBov-ESP32-MPU6050-MAX30102-001",
+  "sensor": "MPU6050 + MAX30102",
   "board": "ESP32",
+  "heartRate": 72.0,
+  "spo2": 97.0,
   "movementScore": 42.0,
   "swayScore": 28.0,
   "heatProbability": 18.0,
@@ -156,7 +168,7 @@ Comportamento:
 - A leitura automatica acontece a cada 3 segundos enquanto o detalhe do animal estiver aberto.
 - O botao `Ler chip agora` faz uma leitura manual.
 - Se receber dados de outro `animalId`, o app ignora.
-- O app mostra movimento, balanceio, probabilidade de cio e status do cio.
+- O app mostra batimentos, oxigenacao, movimento, balanceio, probabilidade de cio e status do cio.
 
 ## Commits importantes
 

@@ -872,6 +872,8 @@ function chipTelemetryPanel(animal) {
       </div>
       <div class="detail-metrics">
         <div><span>Animal vinculado</span><strong>${chip.animalId}</strong></div>
+        <div><span>Batimentos</span><strong id="chipHeartRate">${chip.heartRate} bpm</strong></div>
+        <div><span>Oxigenacao</span><strong id="chipSpo2">${chip.spo2}%</strong></div>
         <div><span>Movimento</span><strong id="chipMovement">${chip.movementScore}</strong></div>
         <div><span>Balanceio</span><strong id="chipSway">${chip.swayScore}</strong></div>
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
@@ -915,6 +917,8 @@ async function readChipTelemetry(id, options = {}) {
       return;
     }
 
+    animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
+    animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
     animal.chip.movementScore = Math.round(Number(telemetry.movementScore) || animal.chip.movementScore);
     animal.chip.swayScore = Math.round(Number(telemetry.swayScore) || animal.chip.swayScore);
     animal.chip.heatProbability = Math.round(Number(telemetry.heatProbability) || animal.chip.heatProbability);
@@ -933,8 +937,8 @@ async function readChipTelemetry(id, options = {}) {
     }
     updateChipPanel(animal);
     if (!options.silent) {
-      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32/MPU6050.`, "Agora");
-      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32/MPU6050.`);
+      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32/MPU6050/MAX30102.`, "Agora");
+      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32/MPU6050/MAX30102.`);
     }
     persist();
     renderAll();
@@ -948,12 +952,16 @@ async function readChipTelemetry(id, options = {}) {
 }
 
 function updateChipPanel(animal) {
+  const heartRate = $("#chipHeartRate");
+  const spo2 = $("#chipSpo2");
   const movement = $("#chipMovement");
   const sway = $("#chipSway");
   const heat = $("#chipHeat");
   const heatStatus = $("#chipHeatStatus");
   const liveStatus = $("#chipLiveStatus");
 
+  if (heartRate) heartRate.textContent = `${animal.chip.heartRate} bpm`;
+  if (spo2) spo2.textContent = `${animal.chip.spo2}%`;
   if (movement) movement.textContent = animal.chip.movementScore;
   if (sway) sway.textContent = animal.chip.swayScore;
   if (heat) heat.textContent = `${animal.chip.heatProbability}%`;
