@@ -89,8 +89,8 @@ MPU6050 SCL     -> ESP32 GPIO 22
 
 MAX30102 VIN/VCC -> ESP32 3V3
 MAX30102 GND     -> ESP32 GND
-MAX30102 SDA     -> ESP32 GPIO 16
-MAX30102 SCL     -> ESP32 GPIO 17
+MAX30102 SDA     -> ESP32 D2 / GPIO 2
+MAX30102 SCL     -> ESP32 D4 / GPIO 4
 ```
 
 Os pinos `INT` dos sensores nao sao necessarios para o firmware atual.
@@ -100,8 +100,8 @@ No codigo:
 ```cpp
 static const uint8_t MPU_SDA_PIN = 21;
 static const uint8_t MPU_SCL_PIN = 22;
-static const uint8_t MAX_SDA_PIN = 16;
-static const uint8_t MAX_SCL_PIN = 17;
+static const uint8_t MAX_SDA_PIN = 2;
+static const uint8_t MAX_SCL_PIN = 4;
 ```
 
 ## Codigo que precisa gravar na placa

@@ -14,8 +14,8 @@ static const char *AP_PASSWORD = "vitalbov219";
 
 static const uint8_t MPU_SDA_PIN = 21;
 static const uint8_t MPU_SCL_PIN = 22;
-static const uint8_t MAX_SDA_PIN = 16;
-static const uint8_t MAX_SCL_PIN = 17;
+static const uint8_t MAX_SDA_PIN = 2;
+static const uint8_t MAX_SCL_PIN = 4;
 static const uint8_t MPU6050_ADDR = 0x68;
 
 static const uint32_t MOTION_SAMPLE_INTERVAL_MS = 50;

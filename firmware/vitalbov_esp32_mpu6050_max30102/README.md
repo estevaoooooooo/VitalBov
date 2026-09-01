@@ -25,11 +25,13 @@ ESP32 GPIO 22 -> MPU6050 SCL
 
 ESP32 3V3  -> MAX30102 VIN/VCC
 ESP32 GND  -> MAX30102 GND
-ESP32 GPIO 16 -> MAX30102 SDA
-ESP32 GPIO 17 -> MAX30102 SCL
+ESP32 D2 / GPIO 2 -> MAX30102 SDA
+ESP32 D4 / GPIO 4 -> MAX30102 SCL
 ```
 
 No firmware, o MPU6050 usa `Wire` e o MAX30102 usa `Wire1`, por isso cada sensor fica em portas diferentes.
+
+Se a sua placa nao tiver os nomes `D2` e `D4` impressos, use os pinos `GPIO 2` e `GPIO 4`.
 
 Nao precisa ligar o pino `INT` de nenhum sensor neste firmware.
 
