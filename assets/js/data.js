@@ -31,13 +31,15 @@ window.VITALBOV_DATA = {
       chip: {
         enabled: true,
         animalId: "VB-219",
-        board: "ESP32-C3",
-        sensor: "MAX30102",
-        firmware: "vitalbov-esp32c3-max30102",
+        board: "ESP32",
+        sensor: "MPU6050",
+        firmware: "vitalbov-esp32-mpu6050",
         ssid: "VitalBov-VB-219",
         endpoint: "http://192.168.4.1/telemetry",
-        heartRate: 72,
-        spo2: 97,
+        movementScore: 42,
+        swayScore: 28,
+        heatProbability: 18,
+        heatDetected: false,
         signal: "Estavel"
       },
       history: {

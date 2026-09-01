@@ -269,7 +269,7 @@ function normalizeState() {
     const baseChip = index === 0 ? baseData.animals[0]?.chip : null;
     return {
       ...animal,
-      chip: baseChip ? { ...baseChip, ...animal.chip, enabled: true, animalId: animal.id } : undefined,
+      chip: baseChip ? { ...animal.chip, ...baseChip, enabled: true, animalId: animal.id } : undefined,
       photo: animal.photo || defaultAnimalPhoto(animal.id),
       updatedAt: animal.updatedAt || Date.now()
     };
@@ -872,9 +872,10 @@ function chipTelemetryPanel(animal) {
       </div>
       <div class="detail-metrics">
         <div><span>Animal vinculado</span><strong>${chip.animalId}</strong></div>
-        <div><span>Batimentos</span><strong id="chipHeartRate">${chip.heartRate} bpm</strong></div>
-        <div><span>Oxigenacao</span><strong id="chipSpo2">${chip.spo2}%</strong></div>
-        <div><span>Sinal MAX30102</span><strong id="chipSignal">${chip.signal}</strong></div>
+        <div><span>Movimento</span><strong id="chipMovement">${chip.movementScore}</strong></div>
+        <div><span>Balanceio</span><strong id="chipSway">${chip.swayScore}</strong></div>
+        <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
+        <div><span>Status do cio</span><strong id="chipHeatStatus">${chip.heatDetected ? "Possivel cio" : "Normal"}</strong></div>
       </div>
       <div class="chip-note">Tempo real ativo a cada 3s. Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
@@ -914,15 +915,26 @@ async function readChipTelemetry(id, options = {}) {
       return;
     }
 
-    animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
-    animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
+    animal.chip.movementScore = Math.round(Number(telemetry.movementScore) || animal.chip.movementScore);
+    animal.chip.swayScore = Math.round(Number(telemetry.swayScore) || animal.chip.swayScore);
+    animal.chip.heatProbability = Math.round(Number(telemetry.heatProbability) || animal.chip.heatProbability);
+    animal.chip.heatDetected = Boolean(telemetry.heatDetected);
     animal.chip.signal = telemetry.signal || animal.chip.signal;
     animal.lastSeen = "Agora";
     animal.updatedAt = Date.now();
+    if (animal.chip.heatDetected) {
+      animal.activity = "Alta";
+      animal.behavior = "Balanceio elevado detectado";
+      animal.reproductive = "Cio provavel por sensor";
+      if (animal.status !== "quarantine") {
+        animal.status = "heat";
+        animal.statusLabel = STATUS_LABELS.heat;
+      }
+    }
     updateChipPanel(animal);
     if (!options.silent) {
-      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32-C3/MAX30102.`, "Agora");
-      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32-C3/MAX30102.`);
+      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32/MPU6050.`, "Agora");
+      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32/MPU6050.`);
     }
     persist();
     renderAll();
@@ -936,14 +948,16 @@ async function readChipTelemetry(id, options = {}) {
 }
 
 function updateChipPanel(animal) {
-  const heartRate = $("#chipHeartRate");
-  const spo2 = $("#chipSpo2");
-  const signal = $("#chipSignal");
+  const movement = $("#chipMovement");
+  const sway = $("#chipSway");
+  const heat = $("#chipHeat");
+  const heatStatus = $("#chipHeatStatus");
   const liveStatus = $("#chipLiveStatus");
 
-  if (heartRate) heartRate.textContent = `${animal.chip.heartRate} bpm`;
-  if (spo2) spo2.textContent = `${animal.chip.spo2}%`;
-  if (signal) signal.textContent = animal.chip.signal;
+  if (movement) movement.textContent = animal.chip.movementScore;
+  if (sway) sway.textContent = animal.chip.swayScore;
+  if (heat) heat.textContent = `${animal.chip.heatProbability}%`;
+  if (heatStatus) heatStatus.textContent = animal.chip.heatDetected ? "Possivel cio" : "Normal";
   if (liveStatus) liveStatus.textContent = `Atualizado agora para ${animal.id}.`;
 }
 
