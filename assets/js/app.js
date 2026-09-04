@@ -943,12 +943,20 @@ async function readChipTelemetry(id, options = {}) {
     persist();
     renderAll();
   } catch {
-    if (liveStatus) liveStatus.textContent = `Sem conexao. Conecte no Wi-Fi ${animal.chip.ssid}.`;
+    const help = chipConnectionHelp(animal);
+    if (liveStatus) liveStatus.textContent = help;
     if (!options.silent) {
-      addNotice("!", "Chip sem conexao", `Conecte o celular ao Wi-Fi ${animal.chip.ssid} e tente novamente.`, "Agora");
+      addNotice("!", "Chip sem conexao", help, "Agora");
       renderNotices();
     }
   }
+}
+
+function chipConnectionHelp(animal) {
+  if (location.protocol === "https:") {
+    return `O navegador pode bloquear o GitHub Pages. Conecte no Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
+  }
+  return `Sem resposta do ESP32. Confira o Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
 }
 
 function updateChipPanel(animal) {
