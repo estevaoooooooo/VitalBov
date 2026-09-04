@@ -864,6 +864,7 @@ function openAnimalDetail(id) {
 
 function chipTelemetryPanel(animal) {
   const chip = animal.chip;
+  const localPanelUrl = chip.endpoint.replace(/\/telemetry$/, "/");
   return `
     <section class="panel chip-panel">
       <div class="section-title">
@@ -881,12 +882,22 @@ function chipTelemetryPanel(animal) {
       </div>
       <div class="chip-note">Tempo real ativo a cada 3s. Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
-      <button class="btn btn-secondary" style="width:100%;margin-top:10px" data-read-chip="${animal.id}">Ler chip agora</button>
+      <div class="chip-actions">
+        <button class="btn btn-secondary" data-read-chip="${animal.id}">Ler chip agora</button>
+        <a class="btn btn-primary" href="${localPanelUrl}">Abrir painel local</a>
+      </div>
     </section>
   `;
 }
 
 function startChipRealtime(id) {
+  const animal = findAnimal(id);
+  if (isHttpsToLocalChip(animal)) {
+    const liveStatus = $("#chipLiveStatus");
+    if (liveStatus) liveStatus.textContent = chipConnectionHelp(animal);
+    return;
+  }
+
   state.activeChipAnimalId = id;
   readChipTelemetry(id, { silent: true });
   state.chipRealtimeTimer = setInterval(() => {
@@ -904,6 +915,14 @@ async function readChipTelemetry(id, options = {}) {
   const animal = findAnimal(id);
   if (!animal?.chip?.enabled) return;
   const liveStatus = $("#chipLiveStatus");
+
+  if (isHttpsToLocalChip(animal)) {
+    const help = chipConnectionHelp(animal);
+    if (liveStatus) liveStatus.textContent = help;
+    if (!options.silent) window.location.href = animal.chip.endpoint.replace(/\/telemetry$/, "/");
+    return;
+  }
+
   if (liveStatus) liveStatus.textContent = "Lendo chip...";
 
   try {
@@ -954,9 +973,13 @@ async function readChipTelemetry(id, options = {}) {
 
 function chipConnectionHelp(animal) {
   if (location.protocol === "https:") {
-    return `O navegador pode bloquear o GitHub Pages. Conecte no Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
+    return `GitHub Pages usa HTTPS e o ESP32 usa HTTP. Conecte no Wi-Fi ${animal.chip.ssid} e toque em Abrir painel local.`;
   }
   return `Sem resposta do ESP32. Confira o Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
+}
+
+function isHttpsToLocalChip(animal) {
+  return location.protocol === "https:" && animal?.chip?.endpoint?.startsWith("http://");
 }
 
 function updateChipPanel(animal) {
