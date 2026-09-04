@@ -218,6 +218,10 @@ void handleRoot() {
   server.send(200, "text/html", localDashboardHtml());
 }
 
+void handleNotFound() {
+  handleRoot();
+}
+
 String telemetryJson() {
   String signal = mpuReady && maxReady ? "Estavel" : (mpuReady || maxReady ? "Parcial" : "Sensores ausentes");
   String json = "{";
@@ -320,10 +324,12 @@ void setupServer() {
   WiFi.softAP(AP_SSID, AP_PASSWORD);
 
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/app", HTTP_GET, handleRoot);
   server.on("/telemetry", HTTP_GET, handleTelemetry);
   server.on("/health", HTTP_GET, handleHealth);
   server.on("/telemetry", HTTP_OPTIONS, handleOptions);
   server.on("/health", HTTP_OPTIONS, handleOptions);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 

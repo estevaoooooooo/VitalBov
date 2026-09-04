@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitalbov-v15";
+const CACHE_NAME = "vitalbov-v16";
 const ASSETS = [
   "./",
   "./index.html",

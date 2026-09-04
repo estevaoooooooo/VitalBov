@@ -884,7 +884,8 @@ function chipTelemetryPanel(animal) {
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
         <button class="btn btn-secondary" data-read-chip="${animal.id}">Ler chip agora</button>
-        <a class="btn btn-primary" href="${localPanelUrl}">Abrir painel local</a>
+        <a class="btn btn-primary" href="${localPanelUrl}" target="_self">Painel ESP32</a>
+        <a class="btn btn-secondary" href="${chip.endpoint}" target="_self">Ver telemetria JSON</a>
       </div>
     </section>
   `;
@@ -919,7 +920,7 @@ async function readChipTelemetry(id, options = {}) {
   if (isHttpsToLocalChip(animal)) {
     const help = chipConnectionHelp(animal);
     if (liveStatus) liveStatus.textContent = help;
-    if (!options.silent) window.location.href = animal.chip.endpoint.replace(/\/telemetry$/, "/");
+    if (!options.silent) window.location.assign(animal.chip.endpoint);
     return;
   }
 
@@ -973,7 +974,7 @@ async function readChipTelemetry(id, options = {}) {
 
 function chipConnectionHelp(animal) {
   if (location.protocol === "https:") {
-    return `GitHub Pages usa HTTPS e o ESP32 usa HTTP. Conecte no Wi-Fi ${animal.chip.ssid} e toque em Abrir painel local.`;
+    return `GitHub Pages usa HTTPS e o ESP32 usa HTTP. Conecte no Wi-Fi ${animal.chip.ssid} e toque em Painel ESP32 ou Ver telemetria JSON.`;
   }
   return `Sem resposta do ESP32. Confira o Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
 }
