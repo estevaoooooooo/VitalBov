@@ -169,6 +169,55 @@ void sendCorsHeaders() {
   server.sendHeader("Access-Control-Allow-Private-Network", "true");
 }
 
+String localDashboardHtml() {
+  String html = "<!doctype html><html lang=\"pt-BR\"><head>";
+  html += "<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">";
+  html += "<title>VitalBov Chip</title>";
+  html += "<style>";
+  html += "body{margin:0;font-family:Arial,sans-serif;background:#eef4e7;color:#24301d}";
+  html += "main{max-width:520px;margin:0 auto;padding:18px}";
+  html += "h1{font-size:24px;margin:8px 0 4px;color:#315d18}";
+  html += ".card{background:#fff;border:1px solid #d9e4cf;border-radius:12px;padding:14px;margin:12px 0;box-shadow:0 8px 24px #20300018}";
+  html += ".grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}";
+  html += ".metric{background:#f8fbf4;border:1px solid #dfe8d5;border-radius:10px;padding:10px}";
+  html += ".metric span{display:block;color:#65745b;font-size:12px;font-weight:700}";
+  html += ".metric strong{display:block;font-size:22px;margin-top:4px}";
+  html += ".status{font-weight:800}.ok{color:#3d771d}.bad{color:#b5372d}";
+  html += "button{width:100%;border:0;border-radius:10px;background:#577627;color:white;font-size:16px;font-weight:800;padding:12px}";
+  html += "small{color:#65745b;font-weight:700}";
+  html += "</style></head><body><main>";
+  html += "<h1>VitalBov Chip</h1><small>Animal VB-219 - Estrela</small>";
+  html += "<section class=\"card\"><div class=\"status\" id=\"status\">Lendo sensores...</div></section>";
+  html += "<section class=\"card grid\">";
+  html += "<div class=\"metric\"><span>Batimentos</span><strong id=\"heartRate\">--</strong></div>";
+  html += "<div class=\"metric\"><span>Oxigenacao</span><strong id=\"spo2\">--</strong></div>";
+  html += "<div class=\"metric\"><span>Movimento</span><strong id=\"movement\">--</strong></div>";
+  html += "<div class=\"metric\"><span>Balanceio</span><strong id=\"sway\">--</strong></div>";
+  html += "<div class=\"metric\"><span>Prob. de cio</span><strong id=\"heat\">--</strong></div>";
+  html += "<div class=\"metric\"><span>Status cio</span><strong id=\"heatStatus\">--</strong></div>";
+  html += "</section>";
+  html += "<section class=\"card\"><button onclick=\"readTelemetry()\">Atualizar agora</button><p><small>Atualiza automaticamente a cada 3 segundos. Esta pagina funciona sem internet.</small></p></section>";
+  html += "<script>";
+  html += "async function readTelemetry(){try{const r=await fetch('/telemetry',{cache:'no-store'});const d=await r.json();";
+  html += "document.getElementById('status').textContent='Conectado: '+d.signal+' | '+d.sensor;";
+  html += "document.getElementById('status').className='status ok';";
+  html += "document.getElementById('heartRate').textContent=Math.round(d.heartRate||0)+' bpm';";
+  html += "document.getElementById('spo2').textContent=Math.round(d.spo2||0)+'%';";
+  html += "document.getElementById('movement').textContent=Math.round(d.movementScore||0);";
+  html += "document.getElementById('sway').textContent=Math.round(d.swayScore||0);";
+  html += "document.getElementById('heat').textContent=Math.round(d.heatProbability||0)+'%';";
+  html += "document.getElementById('heatStatus').textContent=d.heatDetected?'Possivel cio':'Normal';";
+  html += "}catch(e){document.getElementById('status').textContent='Sem resposta do ESP32';document.getElementById('status').className='status bad';}}";
+  html += "readTelemetry();setInterval(readTelemetry,3000);";
+  html += "</script></main></body></html>";
+  return html;
+}
+
+void handleRoot() {
+  sendCorsHeaders();
+  server.send(200, "text/html", localDashboardHtml());
+}
+
 String telemetryJson() {
   String signal = mpuReady && maxReady ? "Estavel" : (mpuReady || maxReady ? "Parcial" : "Sensores ausentes");
   String json = "{";
@@ -270,6 +319,7 @@ void setupServer() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
 
+  server.on("/", HTTP_GET, handleRoot);
   server.on("/telemetry", HTTP_GET, handleTelemetry);
   server.on("/health", HTTP_GET, handleHealth);
   server.on("/telemetry", HTTP_OPTIONS, handleOptions);

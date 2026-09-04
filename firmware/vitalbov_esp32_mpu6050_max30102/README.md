@@ -78,3 +78,15 @@ GET http://192.168.4.1/telemetry
 ```
 
 Ao abrir o animal `VB-219 - Estrela`, o app atualiza os dados a cada 3 segundos.
+
+## Sem internet ao conectar no Wi-Fi do ESP32
+
+Quando o celular ou computador conecta no Wi-Fi `VitalBov-VB-219`, e normal ficar sem internet, porque essa rede e criada pelo proprio ESP32.
+
+Para testar os sensores sem depender do GitHub Pages, abra:
+
+```text
+http://192.168.4.1/
+```
+
+Essa pagina e servida pelo proprio ESP32 e mostra batimentos, oxigenacao, movimento, balanceio e probabilidade de cio em tempo real.

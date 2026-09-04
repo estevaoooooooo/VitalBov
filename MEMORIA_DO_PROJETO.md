@@ -138,9 +138,12 @@ IP: 192.168.4.1
 Endpoints:
 
 ```text
+GET http://192.168.4.1/
 GET http://192.168.4.1/telemetry
 GET http://192.168.4.1/health
 ```
+
+Ao conectar no Wi-Fi `VitalBov-VB-219`, e normal o celular/computador ficar sem internet. Para testar os sensores sem depender do GitHub Pages, abrir `http://192.168.4.1/`. Essa pagina e servida pelo proprio ESP32 e mostra os dados em tempo real.
 
 O JSON de `/telemetry` sempre envia:
 
