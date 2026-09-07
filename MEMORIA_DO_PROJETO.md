@@ -177,7 +177,7 @@ Comportamento:
 
 ## Bluetooth BLE
 
-O firmware atual tambem anuncia o dispositivo BLE `VitalBov-VB-219` com o servico `7b219000-9f52-4f1c-9b45-000000000001` e a caracteristica de telemetria `7b219001-9f52-4f1c-9b45-000000000002`. A caracteristica envia um JSON compacto em fragmentos terminados por quebra de linha, e o app reconstrói a mensagem antes de atualizar os indicadores.
+O firmware atual tambem anuncia o dispositivo BLE `VitalBov-VB-219` usando a biblioteca leve `NimBLE-Arduino`, com o servico `7b219000-9f52-4f1c-9b45-000000000001` e a caracteristica de telemetria `7b219001-9f52-4f1c-9b45-000000000002`. A caracteristica envia um JSON compacto em fragmentos terminados por quebra de linha, e o app reconstrói a mensagem antes de atualizar os indicadores.
 
 Para usar, gravar novamente o firmware `vitalbov_esp32_mpu6050_max30102.ino`, abrir o GitHub Pages em HTTPS usando Chrome ou Edge compatível, abrir o animal `VB-219` e tocar em `Conectar Bluetooth`. O Wi-Fi e mantido como painel local e fallback.
 

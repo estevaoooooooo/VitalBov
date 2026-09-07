@@ -44,7 +44,7 @@ SparkFun MAX3010x Pulse and Proximity Sensor Library
 ```
 
 As bibliotecas `Wire`, `WiFi` e `WebServer` ja vem com o pacote ESP32.
-A biblioteca BLE (`BLEDevice`, `BLEServer` e `BLE2902`) tambem ja vem com o pacote ESP32 da Arduino IDE. Nao instale uma biblioteca BLE diferente.
+Na Arduino IDE, instale tambem a biblioteca `NimBLE-Arduino` pelo gerenciador de bibliotecas. Ela substitui a biblioteca BLE classica e ocupa bem menos memoria.
 
 ## Gravar na placa
 
