@@ -2,6 +2,10 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 #include "MAX30105.h"
 #include "heartRate.h"
 
@@ -11,6 +15,9 @@ static const char *DEVICE_ID = "VitalBov-ESP32-MPU6050-MAX30102-001";
 
 static const char *AP_SSID = "VitalBov-VB-219";
 static const char *AP_PASSWORD = "vitalbov219";
+static const char *BLE_DEVICE_NAME = "VitalBov-VB-219";
+static const char *BLE_SERVICE_UUID = "7b219000-9f52-4f1c-9b45-000000000001";
+static const char *BLE_CHARACTERISTIC_UUID = "7b219001-9f52-4f1c-9b45-000000000002";
 
 static const uint8_t MPU_SDA_PIN = 21;
 static const uint8_t MPU_SCL_PIN = 22;
@@ -22,10 +29,15 @@ static const uint32_t MOTION_SAMPLE_INTERVAL_MS = 50;
 static const uint32_t VITAL_SAMPLE_INTERVAL_MS = 20;
 static const float SWAY_HEAT_THRESHOLD = 62.0f;
 static const float MOVEMENT_HEAT_THRESHOLD = 58.0f;
+static const uint32_t BLE_NOTIFY_INTERVAL_MS = 3000;
+static const size_t BLE_CHUNK_SIZE = 18;
 
 WebServer server(80);
 TwoWire maxWire = TwoWire(1);
 MAX30105 maxSensor;
+BLECharacteristic *bleCharacteristic = nullptr;
+bool bleClientConnected = false;
+uint32_t lastBleNotify = 0;
 
 bool mpuReady = false;
 bool maxReady = false;
@@ -51,6 +63,17 @@ float spo2Estimate = 0.0f;
 float vitalTemperature = 0.0f;
 long lastIr = 0;
 long lastRed = 0;
+
+class BleServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer *server) override {
+    bleClientConnected = true;
+  }
+
+  void onDisconnect(BLEServer *server) override {
+    bleClientConnected = false;
+    BLEDevice::startAdvertising();
+  }
+};
 
 float lastAccelMagnitude = 1.0f;
 float lastGyroZ = 0.0f;
@@ -258,6 +281,53 @@ String telemetryJson() {
   return json;
 }
 
+String bluetoothTelemetryJson() {
+  String json = "{\"a\":\"" + String(ANIMAL_ID) + "\",";
+  json += "\"h\":" + String(heartRate, 0) + ",";
+  json += "\"o\":" + String(spo2Estimate, 0) + ",";
+  json += "\"m\":" + String(movementScore, 0) + ",";
+  json += "\"s\":" + String(swayScore, 0) + ",";
+  json += "\"p\":" + String(heatProbability, 0) + ",";
+  json += "\"c\":" + String(heatDetected ? 1 : 0) + ",";
+  json += "\"q\":" + String(mpuReady && maxReady ? 1 : 0) + "}\n";
+  return json;
+}
+
+void notifyBluetoothTelemetry() {
+  if (!bleClientConnected || bleCharacteristic == nullptr) return;
+
+  String payload = bluetoothTelemetryJson();
+  for (size_t offset = 0; offset < payload.length(); offset += BLE_CHUNK_SIZE) {
+    String chunk = payload.substring(offset, offset + BLE_CHUNK_SIZE);
+    bleCharacteristic->setValue(chunk.c_str());
+    bleCharacteristic->notify();
+    delay(8);
+  }
+}
+
+void setupBluetooth() {
+  BLEDevice::init(BLE_DEVICE_NAME);
+  BLEDevice::setMTU(517);
+
+  BLEServer *bleServer = BLEDevice::createServer();
+  bleServer->setCallbacks(new BleServerCallbacks());
+  BLEService *service = bleServer->createService(BLE_SERVICE_UUID);
+  bleCharacteristic = service->createCharacteristic(
+    BLE_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+  );
+  bleCharacteristic->addDescriptor(new BLE2902());
+  bleCharacteristic->setValue("{\"a\":\"VB-219\",\"q\":0}\n");
+  service->start();
+
+  BLEAdvertising *advertising = BLEDevice::getAdvertising();
+  advertising->addServiceUUID(BLE_SERVICE_UUID);
+  advertising->setScanResponse(true);
+  advertising->setMinPreferred(0x06);
+  advertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+}
+
 void handleTelemetry() {
   sendCorsHeaders();
   server.send(200, "application/json", telemetryJson());
@@ -338,6 +408,7 @@ void setup() {
   delay(300);
   setupSensors();
   setupServer();
+  setupBluetooth();
 
   Serial.println();
   Serial.println("VitalBov ESP32 + MPU6050 + MAX30102");
@@ -346,6 +417,8 @@ void setup() {
   Serial.print("Wi-Fi AP: ");
   Serial.println(AP_SSID);
   Serial.println("Endpoint: http://192.168.4.1/telemetry");
+  Serial.print("Bluetooth BLE: ");
+  Serial.println(BLE_DEVICE_NAME);
 }
 
 void loop() {
@@ -356,4 +429,8 @@ void loop() {
   readMotionSensor();
   readVitalSensor();
   server.handleClient();
+  if (bleClientConnected && millis() - lastBleNotify >= BLE_NOTIFY_INTERVAL_MS) {
+    lastBleNotify = millis();
+    notifyBluetoothTelemetry();
+  }
 }

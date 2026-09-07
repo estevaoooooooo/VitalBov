@@ -44,6 +44,7 @@ SparkFun MAX3010x Pulse and Proximity Sensor Library
 ```
 
 As bibliotecas `Wire`, `WiFi` e `WebServer` ja vem com o pacote ESP32.
+A biblioteca BLE (`BLEDevice`, `BLEServer` e `BLE2902`) tambem ja vem com o pacote ESP32 da Arduino IDE. Nao instale uma biblioteca BLE diferente.
 
 ## Gravar na placa
 
@@ -70,6 +71,18 @@ SSID: VitalBov-VB-219
 Senha: vitalbov219
 IP: 192.168.4.1
 ```
+
+O mesmo firmware tambem anuncia Bluetooth BLE:
+
+```text
+Nome: VitalBov-VB-219
+Servico: 7b219000-9f52-4f1c-9b45-000000000001
+Telemetria: 7b219001-9f52-4f1c-9b45-000000000002
+```
+
+No app publicado em HTTPS, abra o animal `VB-219 - Estrela` e toque em `Conectar Bluetooth`. Selecione `VitalBov-VB-219` e permita o acesso. O app recebe batimentos, oxigenacao, movimento, balanceio e probabilidade de cio a cada 3 segundos.
+
+O Bluetooth Web precisa de Chrome ou Edge com suporte a Web Bluetooth e de uma pagina HTTPS (GitHub Pages). A pagina `http://192.168.4.1/` e o fallback Wi-Fi local e nao precisa de Bluetooth.
 
 O app le:
 

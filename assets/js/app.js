@@ -38,6 +38,10 @@ const state = {
   telemetryTimer: null,
   chipRealtimeTimer: null,
   activeChipAnimalId: null,
+  bleDevice: null,
+  bleCharacteristic: null,
+  bleBuffer: "",
+  bleAnimalId: null,
   ...loadSavedState()
 };
 
@@ -110,6 +114,9 @@ function bindEvents() {
 
     const chipButton = event.target.closest("[data-read-chip]");
     if (chipButton) readChipTelemetry(chipButton.dataset.readChip);
+
+    const bluetoothButton = event.target.closest("[data-connect-chip-ble]");
+    if (bluetoothButton) connectChipBluetooth(bluetoothButton.dataset.connectChipBle);
 
     const orderButton = event.target.closest("[data-finalize-order]");
     if (orderButton) finalizeOrder();
@@ -883,6 +890,7 @@ function chipTelemetryPanel(animal) {
       <div class="chip-note">Tempo real ativo a cada 3s. Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
+        <button class="btn btn-primary" data-connect-chip-ble="${animal.id}">Conectar Bluetooth</button>
         <button class="btn btn-secondary" data-read-chip="${animal.id}">Ler chip agora</button>
         <a class="btn btn-primary" href="${localPanelUrl}" target="_self">Painel ESP32</a>
         <a class="btn btn-secondary" href="${chip.endpoint}" target="_self">Ver telemetria JSON</a>
@@ -893,6 +901,10 @@ function chipTelemetryPanel(animal) {
 
 function startChipRealtime(id) {
   const animal = findAnimal(id);
+  if (state.bleCharacteristic && state.bleAnimalId === id) {
+    state.activeChipAnimalId = id;
+    return;
+  }
   if (isHttpsToLocalChip(animal)) {
     const liveStatus = $("#chipLiveStatus");
     if (liveStatus) liveStatus.textContent = chipConnectionHelp(animal);
@@ -917,6 +929,16 @@ async function readChipTelemetry(id, options = {}) {
   if (!animal?.chip?.enabled) return;
   const liveStatus = $("#chipLiveStatus");
 
+  if (state.bleCharacteristic) {
+    try {
+      const value = await state.bleCharacteristic.readValue();
+      consumeBleText(new TextDecoder().decode(value));
+      return;
+    } catch {
+      state.bleCharacteristic = null;
+    }
+  }
+
   if (isHttpsToLocalChip(animal)) {
     const help = chipConnectionHelp(animal);
     if (liveStatus) liveStatus.textContent = help;
@@ -937,31 +959,7 @@ async function readChipTelemetry(id, options = {}) {
       return;
     }
 
-    animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
-    animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
-    animal.chip.movementScore = Math.round(Number(telemetry.movementScore) || animal.chip.movementScore);
-    animal.chip.swayScore = Math.round(Number(telemetry.swayScore) || animal.chip.swayScore);
-    animal.chip.heatProbability = Math.round(Number(telemetry.heatProbability) || animal.chip.heatProbability);
-    animal.chip.heatDetected = Boolean(telemetry.heatDetected);
-    animal.chip.signal = telemetry.signal || animal.chip.signal;
-    animal.lastSeen = "Agora";
-    animal.updatedAt = Date.now();
-    if (animal.chip.heatDetected) {
-      animal.activity = "Alta";
-      animal.behavior = "Balanceio elevado detectado";
-      animal.reproductive = "Cio provavel por sensor";
-      if (animal.status !== "quarantine") {
-        animal.status = "heat";
-        animal.statusLabel = STATUS_LABELS.heat;
-      }
-    }
-    updateChipPanel(animal);
-    if (!options.silent) {
-      addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32/MPU6050/MAX30102.`, "Agora");
-      addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32/MPU6050/MAX30102.`);
-    }
-    persist();
-    renderAll();
+    applyChipTelemetry(animal, telemetry, options);
   } catch {
     const help = chipConnectionHelp(animal);
     if (liveStatus) liveStatus.textContent = help;
@@ -974,7 +972,7 @@ async function readChipTelemetry(id, options = {}) {
 
 function chipConnectionHelp(animal) {
   if (location.protocol === "https:") {
-    return `GitHub Pages usa HTTPS e o ESP32 usa HTTP. Conecte no Wi-Fi ${animal.chip.ssid} e toque em Painel ESP32 ou Ver telemetria JSON.`;
+    return `Use Conectar Bluetooth para receber dados no app, ou conecte no Wi-Fi ${animal.chip.ssid} e abra o painel ESP32.`;
   }
   return `Sem resposta do ESP32. Confira o Wi-Fi ${animal.chip.ssid} e abra http://192.168.4.1/`;
 }
@@ -999,6 +997,130 @@ function updateChipPanel(animal) {
   if (heat) heat.textContent = `${animal.chip.heatProbability}%`;
   if (heatStatus) heatStatus.textContent = animal.chip.heatDetected ? "Possivel cio" : "Normal";
   if (liveStatus) liveStatus.textContent = `Atualizado agora para ${animal.id}.`;
+}
+
+async function connectChipBluetooth(id) {
+  const animal = findAnimal(id);
+  if (!animal?.chip?.enabled) return;
+  const liveStatus = $("#chipLiveStatus");
+
+  if (!navigator.bluetooth) {
+    if (liveStatus) liveStatus.textContent = "Bluetooth do navegador indisponivel. Use Chrome/Edge no Android ou computador.";
+    return;
+  }
+
+  try {
+    stopChipRealtime();
+    state.bleBuffer = "";
+    state.bleAnimalId = id;
+    if (liveStatus) liveStatus.textContent = "Procurando Bluetooth VitalBov...";
+    const device = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: animal.chip.bleDeviceName }],
+      optionalServices: [animal.chip.bleServiceUuid]
+    });
+
+    state.bleDevice = device;
+    device.addEventListener("gattserverdisconnected", () => {
+      state.bleCharacteristic = null;
+      state.bleDevice = null;
+      state.bleAnimalId = null;
+      state.bleBuffer = "";
+      const status = $("#chipLiveStatus");
+      if (status) status.textContent = "Bluetooth desconectado.";
+    });
+
+    if (liveStatus) liveStatus.textContent = "Conectando ao chip...";
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(animal.chip.bleServiceUuid);
+    const characteristic = await service.getCharacteristic(animal.chip.bleCharacteristicUuid);
+    state.bleCharacteristic = characteristic;
+
+    characteristic.addEventListener("characteristicvaluechanged", handleBleTelemetry);
+    await characteristic.startNotifications();
+
+    state.activeChipAnimalId = id;
+    const value = await characteristic.readValue();
+    consumeBleText(new TextDecoder().decode(value));
+    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
+  } catch {
+    if (liveStatus) liveStatus.textContent = "Nao consegui conectar por Bluetooth. Ligue o Bluetooth e selecione VitalBov-VB-219.";
+  }
+}
+
+function handleBleTelemetry(event) {
+  consumeBleText(new TextDecoder().decode(event.target.value));
+}
+
+function consumeBleText(text) {
+  state.bleBuffer += text;
+  let separator = state.bleBuffer.indexOf("\n");
+
+  while (separator >= 0) {
+    const frame = state.bleBuffer.slice(0, separator).trim();
+    state.bleBuffer = state.bleBuffer.slice(separator + 1);
+    separator = state.bleBuffer.indexOf("\n");
+    if (!frame) continue;
+
+    try {
+      const packet = JSON.parse(frame);
+      const animal = findAnimal(state.bleAnimalId || packet.a || "VB-219");
+      if (!animal) return;
+      const telemetry = packet.a ? {
+        animalId: packet.a,
+        heartRate: packet.h,
+        spo2: packet.o,
+        movementScore: packet.m,
+        swayScore: packet.s,
+        heatProbability: packet.p,
+        heatDetected: Boolean(packet.c),
+        signal: packet.q ? "Estavel" : "Parcial"
+      } : packet;
+      applyChipTelemetry(animal, telemetry, { silent: true });
+      const liveStatus = $("#chipLiveStatus");
+      if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
+    } catch {
+      const liveStatus = $("#chipLiveStatus");
+      if (liveStatus) liveStatus.textContent = "Leitura Bluetooth invalida.";
+    }
+  }
+}
+
+function applyChipTelemetry(animal, telemetry, options = {}) {
+  if (telemetry.animalId !== animal.id) {
+    if (!options.silent) {
+      addNotice("!", "Chip ignorado", `Leitura recebida de ${telemetry.animalId || "animal desconhecido"}, nao de ${animal.id}.`, "Agora");
+      renderNotices();
+    }
+    return;
+  }
+
+  animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
+  animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
+  animal.chip.movementScore = Math.round(Number(telemetry.movementScore) || animal.chip.movementScore);
+  animal.chip.swayScore = Math.round(Number(telemetry.swayScore) || animal.chip.swayScore);
+  animal.chip.heatProbability = Math.round(Number(telemetry.heatProbability) || animal.chip.heatProbability);
+  animal.chip.heatDetected = Boolean(telemetry.heatDetected);
+  animal.chip.signal = telemetry.signal || animal.chip.signal;
+  animal.lastSeen = "Agora";
+  animal.updatedAt = Date.now();
+
+  if (animal.chip.heatDetected) {
+    animal.activity = "Alta";
+    animal.behavior = "Balanceio elevado detectado";
+    animal.reproductive = "Cio provavel por sensor";
+    if (animal.status !== "quarantine") {
+      animal.status = "heat";
+      animal.statusLabel = STATUS_LABELS.heat;
+    }
+  }
+
+  updateChipPanel(animal);
+  if (!options.silent) {
+    addNotice("C", "Chip atualizado", `${animal.id} recebeu leitura do ESP32/MPU6050/MAX30102.`, "Agora");
+    addEvent("chip.telemetry", `${animal.id} atualizado pelo chip ESP32/MPU6050/MAX30102.`);
+  }
+  persist();
+  renderAll();
 }
 
 function drawTinyAnimalChart(animal) {
