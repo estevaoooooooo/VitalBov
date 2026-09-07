@@ -871,7 +871,6 @@ function openAnimalDetail(id) {
 
 function chipTelemetryPanel(animal) {
   const chip = animal.chip;
-  const localPanelUrl = chip.endpoint.replace(/\/telemetry$/, "/");
   return `
     <section class="panel chip-panel">
       <div class="section-title">
@@ -887,13 +886,11 @@ function chipTelemetryPanel(animal) {
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
         <div><span>Status do cio</span><strong id="chipHeatStatus">${chip.heatDetected ? "Possivel cio" : "Normal"}</strong></div>
       </div>
-      <div class="chip-note">Tempo real ativo a cada 3s. Firmware: ${chip.firmware}. Endpoint local: ${chip.endpoint}</div>
+      <div class="chip-note">Bluetooth BLE ativo a cada 3s. Firmware compacto: ${chip.firmware}.</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
         <button class="btn btn-primary" data-connect-chip-ble="${animal.id}">Conectar Bluetooth</button>
         <button class="btn btn-secondary" data-read-chip="${animal.id}">Ler chip agora</button>
-        <a class="btn btn-primary" href="${localPanelUrl}" target="_self">Painel ESP32</a>
-        <a class="btn btn-secondary" href="${chip.endpoint}" target="_self">Ver telemetria JSON</a>
       </div>
     </section>
   `;
@@ -942,7 +939,6 @@ async function readChipTelemetry(id, options = {}) {
   if (isHttpsToLocalChip(animal)) {
     const help = chipConnectionHelp(animal);
     if (liveStatus) liveStatus.textContent = help;
-    if (!options.silent) window.location.assign(animal.chip.endpoint);
     return;
   }
 
