@@ -1,78 +1,39 @@
 # Firmware VitalBov ESP32 + MPU6050 + MAX30102
 
-Este e o firmware atual do prototipo.
+Versao compacta do prototipo. Usa Bluetooth BLE para enviar os dados do MPU6050 e do MAX30102 ao app.
 
-Ele usa os dois sensores:
-
-- `MPU6050`: movimento, balanceio e deteccao de possivel cio.
-- `MAX30102`: batimentos e oxigenacao.
-
-Animal vinculado:
+## Pinos
 
 ```text
-VB-219 - Estrela
-```
-
-## Ligacao dos pinos
-
-Os sensores usam barramentos I2C separados no ESP32:
-
-```text
-ESP32 3V3  -> MPU6050 VCC/VIN
-ESP32 GND  -> MPU6050 GND
+ESP32 3V3 -> MPU6050 VCC/VIN
+ESP32 GND -> MPU6050 GND
 ESP32 GPIO 21 -> MPU6050 SDA
 ESP32 GPIO 22 -> MPU6050 SCL
 
-ESP32 3V3  -> MAX30102 VIN/VCC
-ESP32 GND  -> MAX30102 GND
-ESP32 D2 / GPIO 2 -> MAX30102 SDA
-ESP32 D4 / GPIO 4 -> MAX30102 SCL
+ESP32 3V3 -> MAX30102 VIN/VCC
+ESP32 GND -> MAX30102 GND
+ESP32 GPIO 2 / D2 -> MAX30102 SDA
+ESP32 GPIO 4 / D4 -> MAX30102 SCL
 ```
 
-No firmware, o MPU6050 usa `Wire` e o MAX30102 usa `Wire1`, por isso cada sensor fica em portas diferentes.
-
-Se a sua placa nao tiver os nomes `D2` e `D4` impressos, use os pinos `GPIO 2` e `GPIO 4`.
-
-Nao precisa ligar o pino `INT` de nenhum sensor neste firmware.
+O MPU6050 usa `Wire` e o MAX30102 usa `Wire1`. Os pinos `INT` nao sao usados.
 
 ## Bibliotecas
 
-Na Arduino IDE, instale:
+Instale na Arduino IDE:
 
 ```text
 SparkFun MAX3010x Pulse and Proximity Sensor Library
+NimBLE-Arduino
 ```
 
-As bibliotecas `Wire`, `WiFi` e `WebServer` ja vem com o pacote ESP32.
-Na Arduino IDE, instale tambem a biblioteca `NimBLE-Arduino` pelo gerenciador de bibliotecas. Ela substitui a biblioteca BLE classica e ocupa bem menos memoria.
+`Wire` ja vem com o pacote ESP32. Esta versao nao usa Wi-Fi, servidor web ou pagina HTML no ESP32, reduzindo bastante o uso de memoria.
 
-## Gravar na placa
+## Gravar
 
-Abra este arquivo na Arduino IDE:
+Abra `vitalbov_esp32_mpu6050_max30102.ino`, selecione `ESP32 Dev Module`, escolha a porta COM e clique em Upload.
 
-```text
-firmware\vitalbov_esp32_mpu6050_max30102\vitalbov_esp32_mpu6050_max30102.ino
-```
-
-Selecione uma placa ESP32 normal, por exemplo:
-
-```text
-ESP32 Dev Module
-```
-
-Depois selecione a porta COM e clique em upload/gravar.
-
-## Wi-Fi criado pela placa
-
-Depois de gravar, o ESP32 cria:
-
-```text
-SSID: VitalBov-VB-219
-Senha: vitalbov219
-IP: 192.168.4.1
-```
-
-O mesmo firmware tambem anuncia Bluetooth BLE:
+## Bluetooth BLE
 
 ```text
 Nome: VitalBov-VB-219
@@ -80,26 +41,4 @@ Servico: 7b219000-9f52-4f1c-9b45-000000000001
 Telemetria: 7b219001-9f52-4f1c-9b45-000000000002
 ```
 
-No app publicado em HTTPS, abra o animal `VB-219 - Estrela` e toque em `Conectar Bluetooth`. Selecione `VitalBov-VB-219` e permita o acesso. O app recebe batimentos, oxigenacao, movimento, balanceio e probabilidade de cio a cada 3 segundos.
-
-O Bluetooth Web precisa de Chrome ou Edge com suporte a Web Bluetooth e de uma pagina HTTPS (GitHub Pages). A pagina `http://192.168.4.1/` e o fallback Wi-Fi local e nao precisa de Bluetooth.
-
-O app le:
-
-```text
-GET http://192.168.4.1/telemetry
-```
-
-Ao abrir o animal `VB-219 - Estrela`, o app atualiza os dados a cada 3 segundos.
-
-## Sem internet ao conectar no Wi-Fi do ESP32
-
-Quando o celular ou computador conecta no Wi-Fi `VitalBov-VB-219`, e normal ficar sem internet, porque essa rede e criada pelo proprio ESP32.
-
-Para testar os sensores sem depender do GitHub Pages, abra:
-
-```text
-http://192.168.4.1/
-```
-
-Essa pagina e servida pelo proprio ESP32 e mostra batimentos, oxigenacao, movimento, balanceio e probabilidade de cio em tempo real.
+No app HTTPS, abra `VB-219 - Estrela`, toque em `Conectar Bluetooth` e selecione `VitalBov-VB-219`. Use Chrome ou Edge com Web Bluetooth. Esta versao compacta nao cria mais a rede `192.168.4.1`.

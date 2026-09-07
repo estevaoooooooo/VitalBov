@@ -179,7 +179,7 @@ Comportamento:
 
 O firmware atual tambem anuncia o dispositivo BLE `VitalBov-VB-219` usando a biblioteca leve `NimBLE-Arduino`, com o servico `7b219000-9f52-4f1c-9b45-000000000001` e a caracteristica de telemetria `7b219001-9f52-4f1c-9b45-000000000002`. A caracteristica envia um JSON compacto em fragmentos terminados por quebra de linha, e o app reconstrói a mensagem antes de atualizar os indicadores.
 
-Para usar, gravar novamente o firmware `vitalbov_esp32_mpu6050_max30102.ino`, abrir o GitHub Pages em HTTPS usando Chrome ou Edge compatível, abrir o animal `VB-219` e tocar em `Conectar Bluetooth`. O Wi-Fi e mantido como painel local e fallback.
+Para usar, gravar novamente o firmware `vitalbov_esp32_mpu6050_max30102.ino`, abrir o GitHub Pages em HTTPS usando Chrome ou Edge compatível, abrir o animal `VB-219` e tocar em `Conectar Bluetooth`. A versao compacta nao cria mais Wi-Fi nem painel local, para reduzir o uso de memoria da placa.
 
 ## Commits importantes
 
@@ -204,6 +204,6 @@ b79c108 Add realtime chip telemetry polling
 2. Abrir o `.ino` na Arduino IDE.
 3. Selecionar placa ESP32 Dev Module e porta COM.
 4. Gravar o firmware.
-5. Conectar o celular no Wi-Fi `VitalBov-VB-219`.
-6. Abrir o app e entrar no animal `VB-219 - Estrela`.
+5. Abrir o app HTTPS e entrar no animal `VB-219 - Estrela`.
+6. Tocar em `Conectar Bluetooth` e selecionar `VitalBov-VB-219`.
 7. Conferir movimento, balanceio e probabilidade de cio em tempo real.
