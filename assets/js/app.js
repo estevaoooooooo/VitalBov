@@ -888,7 +888,7 @@ function chipTelemetryPanel(animal) {
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
         <div><span>Status do cio</span><strong id="chipHeatStatus">${chip.heatDetected ? "Possivel cio" : "Normal"}</strong></div>
       </div>
-      <div class="chip-note">Bluetooth BLE ativo a cada 3s. Firmware compacto: ${chip.firmware}.</div>
+      <div class="chip-note">Bluetooth BLE ativo. Simulação somente até chegar uma telemetria real do firmware ${chip.firmware}.</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
         <button class="btn btn-primary" data-connect-chip-ble="${animal.id}">Conectar Bluetooth</button>
@@ -1077,9 +1077,16 @@ function consumeBleText(text) {
         heatDetected: Boolean(packet.c),
         signal: packet.q ? "Estavel" : "Parcial"
       } : packet;
+      const sensorsReady = packet.a ? Boolean(packet.q) : Boolean(telemetry.mpuReady && telemetry.maxReady);
+      if (!sensorsReady) {
+        const liveStatus = $("#chipLiveStatus");
+        if (liveStatus) liveStatus.textContent = "Bluetooth conectado, mas aguardando MPU6050 e MAX30102.";
+        continue;
+      }
+      stopBleSimulation();
       applyChipTelemetry(animal, telemetry, { silent: true });
       const liveStatus = $("#chipLiveStatus");
-      if (liveStatus && !state.bleSimulationActive) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
+      if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados reais dos sensores.";
     } catch {
       const liveStatus = $("#chipLiveStatus");
       if (liveStatus && !state.bleSimulationActive) liveStatus.textContent = "Leitura Bluetooth invalida.";
