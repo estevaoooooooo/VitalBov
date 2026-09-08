@@ -1006,6 +1006,7 @@ async function connectChipBluetooth(id) {
     stopChipRealtime();
     state.bleBuffer = "";
     state.bleAnimalId = id;
+    state.bleDevice = null;
     if (liveStatus) liveStatus.textContent = "Procurando Bluetooth VitalBov...";
     const device = await navigator.bluetooth.requestDevice({
       // Alguns firmwares anunciam o nome somente depois da conexao; listar BLE
@@ -1015,6 +1016,8 @@ async function connectChipBluetooth(id) {
     });
 
     state.bleDevice = device;
+    state.activeChipAnimalId = id;
+    startBleSimulation(animal);
     device.addEventListener("gattserverdisconnected", () => {
       state.bleCharacteristic = null;
       state.bleDevice = null;
@@ -1034,12 +1037,14 @@ async function connectChipBluetooth(id) {
     characteristic.addEventListener("characteristicvaluechanged", handleBleTelemetry);
     await characteristic.startNotifications();
 
-    state.activeChipAnimalId = id;
-    startBleSimulation(animal);
-    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Aguardando dados dos sensores...";
+    if (liveStatus) liveStatus.textContent = "Bluetooth selecionado. Aguardando dados dos sensores...";
   } catch (error) {
     const reason = error?.message || "permissao ou dispositivo indisponivel";
-    if (liveStatus) liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
+    if (state.bleDevice) {
+      if (liveStatus) liveStatus.textContent = `SIMULAÇÃO ativa. Bluetooth selecionado, mas o serviço real não respondeu: ${reason}`;
+    } else if (liveStatus) {
+      liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
+    }
   }
 }
 
@@ -1089,7 +1094,7 @@ function startBleSimulation(animal) {
   let step = 0;
 
   const tick = () => {
-    if (!state.bleSimulationActive || !state.bleCharacteristic) return;
+    if (!state.bleSimulationActive || !state.bleDevice) return;
     step += 1;
     animal.chip.heartRate = Math.round(72 + Math.sin(step / 2) * 5);
     animal.chip.spo2 = Math.round(96 + Math.sin(step / 3));
@@ -1099,7 +1104,7 @@ function startBleSimulation(animal) {
     animal.chip.heatDetected = animal.chip.heatProbability >= 62;
     updateChipPanel(animal);
     const liveStatus = $("#chipLiveStatus");
-    if (liveStatus) liveStatus.textContent = "Bluetooth conectado - SIMULAÇÃO aguardando dados reais do ESP32.";
+    if (liveStatus) liveStatus.textContent = "SIMULAÇÃO ativa - aguardando dados reais do ESP32.";
   };
 
   tick();
