@@ -1011,10 +1011,9 @@ async function connectChipBluetooth(id) {
     state.bleAnimalId = id;
     if (liveStatus) liveStatus.textContent = "Procurando Bluetooth VitalBov...";
     const device = await navigator.bluetooth.requestDevice({
-      filters: [
-        { namePrefix: animal.chip.bleDeviceName },
-        { services: [animal.chip.bleServiceUuid] }
-      ],
+      // Alguns firmwares anunciam o nome somente depois da conexao; listar BLE
+      // permite selecionar a placa mesmo nesses casos.
+      acceptAllDevices: true,
       optionalServices: [animal.chip.bleServiceUuid]
     });
 
