@@ -1011,7 +1011,10 @@ async function connectChipBluetooth(id) {
     state.bleAnimalId = id;
     if (liveStatus) liveStatus.textContent = "Procurando Bluetooth VitalBov...";
     const device = await navigator.bluetooth.requestDevice({
-      filters: [{ namePrefix: animal.chip.bleDeviceName }],
+      filters: [
+        { namePrefix: animal.chip.bleDeviceName },
+        { services: [animal.chip.bleServiceUuid] }
+      ],
       optionalServices: [animal.chip.bleServiceUuid]
     });
 
@@ -1038,8 +1041,9 @@ async function connectChipBluetooth(id) {
     const value = await characteristic.readValue();
     consumeBleText(new TextDecoder().decode(value));
     if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
-  } catch {
-    if (liveStatus) liveStatus.textContent = "Nao consegui conectar por Bluetooth. Ligue o Bluetooth e selecione VitalBov-VB-219.";
+  } catch (error) {
+    const reason = error?.message || "permissao ou dispositivo indisponivel";
+    if (liveStatus) liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
   }
 }
 
