@@ -927,13 +927,8 @@ async function readChipTelemetry(id, options = {}) {
   const liveStatus = $("#chipLiveStatus");
 
   if (state.bleCharacteristic) {
-    try {
-      const value = await state.bleCharacteristic.readValue();
-      consumeBleText(new TextDecoder().decode(value));
-      return;
-    } catch {
-      state.bleCharacteristic = null;
-    }
+    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Aguardando a proxima notificacao...";
+    return;
   }
 
   if (isHttpsToLocalChip(animal)) {
@@ -1037,9 +1032,7 @@ async function connectChipBluetooth(id) {
     await characteristic.startNotifications();
 
     state.activeChipAnimalId = id;
-    const value = await characteristic.readValue();
-    consumeBleText(new TextDecoder().decode(value));
-    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
+    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Aguardando dados dos sensores...";
   } catch (error) {
     const reason = error?.message || "permissao ou dispositivo indisponivel";
     if (liveStatus) liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
@@ -1059,6 +1052,7 @@ function consumeBleText(text) {
     state.bleBuffer = state.bleBuffer.slice(separator + 1);
     separator = state.bleBuffer.indexOf("\n");
     if (!frame) continue;
+    if (!frame.startsWith("{") || !frame.endsWith("}")) continue;
 
     try {
       const packet = JSON.parse(frame);
