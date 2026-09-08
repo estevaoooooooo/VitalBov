@@ -1108,7 +1108,7 @@ function startBleSimulation(animal) {
   };
 
   tick();
-  state.bleSimulationTimer = setInterval(tick, 1200);
+  state.bleSimulationTimer = setInterval(tick, 2000);
 }
 
 function stopBleSimulation() {
