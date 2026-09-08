@@ -657,6 +657,33 @@ svg {
   z-index: 1;
 }
 
+.map-boundary-shape {
+  position: absolute;
+  inset: 8%;
+  border: 2px dashed var(--green);
+  background: rgba(133, 176, 36, 0.11);
+  pointer-events: none;
+}
+
+.map-corner {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: grid;
+  gap: 2px;
+  min-width: 34px;
+  padding: 4px 6px;
+  border: 1px solid var(--green);
+  border-radius: var(--radius);
+  background: var(--white);
+  color: var(--green-dark);
+  box-shadow: 0 6px 16px rgba(37, 49, 30, 0.14);
+  text-align: center;
+}
+
+.map-corner strong { font-size: 0.78rem; }
+.map-corner small { display: none; }
+
 .leaflet-map {
   min-height: 100%;
 }
@@ -998,6 +1025,38 @@ body.dark .map-legend {
   gap: 10px;
 }
 
+.coordinate-hint,
+.boundary-heading {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.coordinate-hint {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--green);
+  background: var(--paper);
+}
+
+.farm-boundary-editor,
+.onboarding-boundary {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.farm-boundary-editor .boundary-heading,
+.onboarding-boundary .boundary-heading {
+  display: grid;
+  gap: 4px;
+  grid-column: 1 / -1;
+}
+
 .form-field {
   display: grid;
   gap: 6px;
@@ -1136,6 +1195,47 @@ body.dark .map-legend {
   font-weight: 800;
 }
 
+.course-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-end;
+  padding: 18px;
+  border-radius: var(--radius);
+  color: white;
+  background: linear-gradient(135deg, #3d6216, #85b024);
+}
+
+.course-hero h3 { margin: 0 0 6px; font-size: 1.25rem; }
+.course-hero p { margin: 0; color: rgba(255,255,255,0.84); line-height: 1.45; }
+.course-hero .kicker { color: #e8f3c9; }
+.course-hero > strong { font-size: 2.1rem; white-space: nowrap; }
+
+.course-progress {
+  height: 8px;
+  margin: 12px 0 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.course-progress span { display: block; height: 100%; border-radius: inherit; background: var(--green-bright); transition: width .25s ease; }
+.course-meta { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .8rem; font-weight: 800; }
+.lesson-list { display: grid; gap: 10px; margin-top: 14px; }
+.lesson-card { display: grid; grid-template-columns: 42px 1fr auto; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.lesson-card.is-complete { border-color: var(--lime); }
+.lesson-number { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius); background: var(--green); color: white; font-size: .75rem; font-weight: 900; }
+.lesson-card.is-complete .lesson-number { background: var(--lime); color: var(--ink); }
+.lesson-content h3 { margin: 3px 0; font-size: .96rem; }
+.lesson-content p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.lesson-tags { display: flex; gap: 8px; align-items: center; color: var(--green-dark); font-size: .72rem; font-weight: 900; }
+.lesson-tags small { color: var(--muted); font-weight: 800; }
+.lesson-detail-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .82rem; font-weight: 800; }
+.lesson-lead { color: var(--muted); line-height: 1.55; }
+.lesson-checklist { display: grid; gap: 8px; }
+.lesson-checklist div { display: flex; gap: 8px; align-items: center; padding: 10px; border-radius: var(--radius); background: var(--paper); color: var(--ink); font-weight: 700; }
+.lesson-checklist span { color: var(--green); font-size: 1.2rem; font-weight: 900; }
+
 @media (min-width: 760px) {
   .main-app {
     padding: 18px 24px 104px;
@@ -1174,6 +1274,11 @@ body.dark .map-legend {
 
   .form-grid.two {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .farm-boundary-editor,
+  .onboarding-boundary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

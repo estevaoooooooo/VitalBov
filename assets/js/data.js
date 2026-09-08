@@ -5,6 +5,12 @@ window.VITALBOV_DATA = {
     city: "Colatina",
     state: "ES",
     center: [-19.538, -40.630],
+    boundary: {
+      A: [-19.526, -40.646],
+      B: [-19.526, -40.614],
+      C: [-19.550, -40.614],
+      D: [-19.550, -40.646]
+    },
     pendingSync: 38,
     gateways: 4
   },

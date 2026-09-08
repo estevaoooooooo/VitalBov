@@ -207,3 +207,10 @@ b79c108 Add realtime chip telemetry polling
 5. Abrir o app HTTPS e entrar no animal `VB-219 - Estrela`.
 6. Tocar em `Conectar Bluetooth` e selecionar `VitalBov-VB-219`.
 7. Conferir movimento, balanceio e probabilidade de cio em tempo real.
+
+## Apresentacao Pecuaria 4.0 e mapa da fazenda
+
+- A tela `Pecuaria 4.0` agora possui 12 aulas, abertura de conteudo, checklist e progresso salvo localmente.
+- O cadastro inicial e `Cadastro e fazendas` permitem editar os quatro pontos do limite da fazenda: A noroeste, B nordeste, C sudeste e D sudoeste.
+- O mapa desenha o quadrado A-B-C-D e os animais recebem uma area e coordenadas limitadas ao interior desse quadrado.
+- O cadastro de animal permite escolher a area A/B/C/D e informar latitude e longitude; ao salvar, a coordenada e ajustada para dentro do limite.

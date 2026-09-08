@@ -15,6 +15,20 @@ const STATUS_COLORS = {
 };
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const EDUCATION_LESSONS = [
+  { id: "fundamentos", title: "Fundamentos da Pecuaria 4.0", duration: "8 min", level: "Essencial", summary: "Como dados, sensores e manejo integrado melhoram a rotina da fazenda.", points: ["Conectar tecnologia a decisoes de campo", "Separar alerta de tendencia", "Criar uma rotina diaria de leitura"] },
+  { id: "sensores", title: "Sensores e qualidade da leitura", duration: "10 min", level: "Essencial", summary: "Leia movimento, temperatura e sinais vitais com confianca.", points: ["Verificar posicionamento do sensor", "Reconhecer leituras incompletas", "Registrar a primeira linha de base"] },
+  { id: "cio", title: "Deteccao de cio orientada por dados", duration: "9 min", level: "Reproducao", summary: "Cruze balanceio, atividade e historico para priorizar observacoes.", points: ["Identificar aumento de atividade", "Confirmar sinais no curral", "Planejar a janela fertil"] },
+  { id: "sanidade", title: "Sanidade e alerta precoce", duration: "12 min", level: "Sanidade", summary: "Transforme alteracoes de comportamento em protocolos de cuidado.", points: ["Comparar com o basal do animal", "Classificar alerta e urgencia", "Acionar a equipe veterinaria"] },
+  { id: "quarentena", title: "Quarentena Digital", duration: "7 min", level: "Sanidade", summary: "Isole, acompanhe e documente animais que precisam de atencao.", points: ["Registrar o motivo do isolamento", "Acompanhar a evolucao", "Liberar somente com criterio"] },
+  { id: "mapa", title: "Mapa vivo e georreferenciamento", duration: "8 min", level: "Operacao", summary: "Use o territorio da fazenda para localizar animais e lotes.", points: ["Ler limites A-B-C-D", "Encontrar o animal por area", "Planejar a ronda de manejo"] },
+  { id: "lotes", title: "Lotes e manejo de precisao", duration: "11 min", level: "Operacao", summary: "Organize grupos por finalidade, fase e risco.", points: ["Definir lotes coerentes", "Filtrar o que exige acao", "Reduzir deslocamentos"] },
+  { id: "rastreabilidade", title: "Rastreabilidade do rebanho", duration: "10 min", level: "Gestao", summary: "Mantenha um historico confiavel do animal do nascimento ao abate.", points: ["Padronizar identificadores", "Auditar mudancas", "Preparar relatorios"] },
+  { id: "offline", title: "Operacao offline no campo", duration: "6 min", level: "Operacao", summary: "Continue registrando mesmo quando a internet desaparecer.", points: ["Entender o modo offline", "Sincronizar com seguranca", "Conferir leituras pendentes"] },
+  { id: "lorawan", title: "Conectividade rural e LoRaWAN", duration: "9 min", level: "Tecnologia", summary: "Escolha conectividade para areas extensas e de baixa cobertura.", points: ["Diferenciar BLE, Wi-Fi e LoRaWAN", "Posicionar gateways", "Monitorar sinal"] },
+  { id: "indicadores", title: "Indicadores para decidir melhor", duration: "10 min", level: "Gestao", summary: "Converta dados do rebanho em indicadores de rotina.", points: ["Acompanhar tendencia", "Definir meta de manejo", "Medir resultado"] },
+  { id: "plano", title: "Plano de implantacao em 30 dias", duration: "14 min", level: "Avancado", summary: "Leve a Pecuaria 4.0 da apresentacao para a operacao.", points: ["Escolher o primeiro lote", "Treinar a equipe", "Revisar resultados semanalmente"] }
+];
 
 const state = {
   activeView: "home",
@@ -33,6 +47,7 @@ const state = {
   selectedFarm: 0,
   map: null,
   markersLayer: null,
+  farmBoundaryLayer: null,
   mapReady: false,
   leafletLoading: false,
   telemetryTimer: null,
@@ -42,6 +57,7 @@ const state = {
   bleCharacteristic: null,
   bleBuffer: "",
   bleAnimalId: null,
+  educationCompleted: [],
   ...loadSavedState()
 };
 
@@ -117,6 +133,12 @@ function bindEvents() {
 
     const bluetoothButton = event.target.closest("[data-connect-chip-ble]");
     if (bluetoothButton) connectChipBluetooth(bluetoothButton.dataset.connectChipBle);
+
+    const lessonButton = event.target.closest("[data-open-lesson]");
+    if (lessonButton) openEducationLesson(lessonButton.dataset.openLesson);
+
+    const completeLessonButton = event.target.closest("[data-complete-lesson]");
+    if (completeLessonButton) completeEducationLesson(completeLessonButton.dataset.completeLesson);
 
     const orderButton = event.target.closest("[data-finalize-order]");
     if (orderButton) finalizeOrder();
@@ -260,6 +282,7 @@ async function hydrateFromDatabase() {
     if (item.key === "offline") state.offline = item.value;
     if (item.key === "selectedFarm") state.selectedFarm = item.value;
     if (item.key === "onboardingSeen") state.onboardingSeen = item.value;
+    if (item.key === "educationCompleted") state.educationCompleted = item.value || [];
   });
 
   normalizeState();
@@ -270,14 +293,19 @@ async function hydrateFromDatabase() {
 }
 
 function normalizeState() {
+  state.educationCompleted = Array.isArray(state.educationCompleted) ? state.educationCompleted : [];
   appData.farm.id ||= "default";
   appData.farm.updatedAt ||= Date.now();
+  appData.farm.boundary = normalizeBoundary(appData.farm.boundary);
+  appData.farm.center = boundaryCenter(appData.farm.boundary);
   appData.animals = appData.animals.map((animal, index) => {
     const baseChip = index === 0 ? baseData.animals[0]?.chip : null;
     return {
       ...animal,
       chip: baseChip ? { ...animal.chip, ...baseChip, enabled: true, animalId: animal.id } : undefined,
       photo: animal.photo || defaultAnimalPhoto(animal.id),
+      coords: clampToFarm(animal.coords || randomInsideFarm("C")),
+      zone: animal.zone || zoneForCoords(animal.coords || appData.farm.center),
       updatedAt: animal.updatedAt || Date.now()
     };
   });
@@ -309,7 +337,8 @@ async function persist() {
     cart: state.cart,
     offline: state.offline,
     selectedFarm: state.selectedFarm,
-    onboardingSeen: state.onboardingSeen
+    onboardingSeen: state.onboardingSeen,
+    educationCompleted: state.educationCompleted
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
@@ -327,7 +356,8 @@ async function persist() {
       dbReplaceAll("settings", [
         { key: "offline", value: state.offline },
         { key: "selectedFarm", value: state.selectedFarm },
-        { key: "onboardingSeen", value: state.onboardingSeen }
+        { key: "onboardingSeen", value: state.onboardingSeen },
+        { key: "educationCompleted", value: state.educationCompleted }
       ])
     ]);
   } catch {
@@ -483,7 +513,7 @@ function animalCard(animal) {
       <img class="animal-thumb" src="${animal.photo}" alt="Foto de ${animal.name}">
       <div>
         <strong>${animal.name} - ${animal.id}</strong>
-        <p>${animal.breed} | ${animal.lot} | bateria ${animal.battery}%${chipLabel}</p>
+        <p>${animal.breed} | ${animal.lot} | Area ${animal.zone || zoneForCoords(animal.coords)} | bateria ${animal.battery}%${chipLabel}</p>
       </div>
       <span class="status-badge ${animal.status}">${animal.statusLabel}</span>
     </button>
@@ -496,7 +526,7 @@ function animalRow(animal) {
       <img class="animal-thumb" src="${animal.photo}" alt="Foto de ${animal.name}">
       <div>
         <strong>${animal.id} - ${animal.name}</strong>
-        <p>${animal.lot} | ${animal.temp} C | ${animal.activity} | visto ${animal.lastSeen}</p>
+        <p>${animal.lot} | Area ${animal.zone || zoneForCoords(animal.coords)} | ${animal.temp} C | ${animal.activity} | visto ${animal.lastSeen}</p>
       </div>
       <span class="status-badge ${animal.status}">${animal.statusLabel}</span>
     </button>
@@ -524,6 +554,13 @@ function initLeafletMap() {
     }).addTo(state.map);
 
     state.markersLayer = L.layerGroup().addTo(state.map);
+    state.farmBoundaryLayer = L.polygon(farmBoundaryPoints(), {
+      color: "#577627",
+      weight: 3,
+      fillColor: "#85b024",
+      fillOpacity: 0.12,
+      dashArray: "7 6"
+    }).addTo(state.map);
   }
   state.mapReady = true;
   updateMapMarkers();
@@ -571,6 +608,7 @@ function updateMapMarkers() {
     renderFallbackMap();
     return;
   }
+  if (state.farmBoundaryLayer) state.farmBoundaryLayer.setLatLngs(farmBoundaryPoints());
   const animals = getFilteredAnimals();
   state.markersLayer.clearLayers();
   animals.forEach((animal) => {
@@ -584,7 +622,7 @@ function updateMapMarkers() {
     marker.addTo(state.markersLayer);
   });
   if (animals.length) {
-    state.map.fitBounds(animals.map((animal) => animal.coords), { padding: [24, 24], maxZoom: 16 });
+    state.map.fitBounds(farmBoundaryPoints().concat(animals.map((animal) => animal.coords)), { padding: [24, 24], maxZoom: 16 });
   }
 }
 
@@ -603,10 +641,14 @@ function renderFallbackMap() {
   if (!fallback) return;
   const animals = getFilteredAnimals();
   fallback.hidden = false;
-  fallback.innerHTML = `<div class="map-grid"></div>${animals.map((animal, index) => {
-    const left = 18 + ((index * 19) % 68);
-    const top = 28 + ((index * 17) % 48);
-    return `<button class="map-pin ${animal.status}" style="left:${left}%;top:${top}%" data-open-animal="${animal.id}">${animal.id}</button>`;
+  const boundary = appData.farm.boundary;
+  const corners = Object.entries(boundary).map(([label, coords]) => {
+    const position = coordsToMapPosition(coords);
+    return `<span class="map-corner" style="left:${position.left}%;top:${position.top}%"><strong>${label}</strong><small>${formatCoordinatePair(coords)}</small></span>`;
+  }).join("");
+  fallback.innerHTML = `<div class="map-grid"></div><div class="map-boundary-shape"></div>${corners}${animals.map((animal) => {
+    const position = coordsToMapPosition(animal.coords);
+    return `<button class="map-pin ${animal.status}" style="left:${position.left}%;top:${position.top}%" data-open-animal="${animal.id}">${animal.id}</button>`;
   }).join("")}`;
 }
 
@@ -701,6 +743,14 @@ function completeOnboarding() {
   if (email) appData.farm.email = email;
   if (farm) appData.farm.name = farm;
   appData.farm.herdSize = herd || appData.animals.length;
+  appData.farm.boundary = normalizeBoundary({
+    A: parseCoordinatePair($("#onboardPointA")?.value, appData.farm.boundary.A),
+    B: parseCoordinatePair($("#onboardPointB")?.value, appData.farm.boundary.B),
+    C: parseCoordinatePair($("#onboardPointC")?.value, appData.farm.boundary.C),
+    D: parseCoordinatePair($("#onboardPointD")?.value, appData.farm.boundary.D)
+  });
+  appData.farm.center = boundaryCenter(appData.farm.boundary);
+  fitAnimalsToFarm();
   appData.farm.verified = true;
   state.onboardingSeen = true;
   addNotice("V", "E-mail verificado", "Cadastro inicial confirmado e fazenda pronta para monitoramento.", "Agora");
@@ -1146,6 +1196,8 @@ function drawTinyAnimalChart(animal) {
 function openAnimalForm(id) {
   const animal = id ? findAnimal(id) : null;
   const defaultPhoto = animal?.photo || defaultAnimalPhoto(animal?.id || nextAnimalId());
+  const animalCoords = animal?.coords || randomInsideFarm("C");
+  const animalZone = animal?.zone || zoneForCoords(animalCoords);
   openModal(`
     <div class="sheet-header">
       <h2>${animal ? "Editar animal" : "Cadastro de animal"}</h2>
@@ -1170,10 +1222,19 @@ function openAnimalForm(id) {
       ${field("Peso", animal?.weight || "320", "number", "animalWeight")}
       ${field("Lote", animal?.lot || "Matrizes 01", "text", "animalLot")}
       ${selectField("Status", animal?.status || "healthy", ["healthy", "heat", "alert", "quarantine"], "animalStatus", STATUS_LABELS)}
+      ${selectField("Area da fazenda", animalZone, ["A", "B", "C", "D"], "animalZone", { A: "A - noroeste", B: "B - nordeste", C: "C - sudeste", D: "D - sudoeste" })}
+      ${field("Latitude", animalCoords[0], "number", "animalLatitude")}
+      ${field("Longitude", animalCoords[1], "number", "animalLongitude")}
     </div>
+    <div class="coordinate-hint">As coordenadas serão ajustadas para permanecer dentro do quadrado A-B-C-D da fazenda.</div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px" data-submit-animal="${animal?.id || ""}">Salvar cadastro</button>
   `);
   $("#animalPhotoPreview").dataset.photo = defaultPhoto;
+  $("#animalZone").addEventListener("change", (event) => {
+    const coords = randomInsideFarm(event.target.value);
+    $("#animalLatitude").value = coords[0];
+    $("#animalLongitude").value = coords[1];
+  });
 }
 
 async function saveAnimalFromForm(originalId) {
@@ -1183,7 +1244,10 @@ async function saveAnimalFromForm(originalId) {
 
   const status = $("#animalStatus").value;
   const existing = originalId ? findAnimal(originalId) : null;
-  const coords = existing?.coords || randomNearbyCoords();
+  const requestedCoords = [Number($("#animalLatitude").value), Number($("#animalLongitude").value)];
+  const coords = requestedCoords.every(Number.isFinite)
+    ? clampToFarm(requestedCoords)
+    : randomInsideFarm($("#animalZone").value);
   const photo = await getAnimalPhoto(existing);
   const animal = {
     id,
@@ -1202,6 +1266,7 @@ async function saveAnimalFromForm(originalId) {
     reproductive: $("#animalSex").value === "Femea" ? "Monitoramento ativo" : "Nao aplicavel",
     photo,
     coords,
+    zone: zoneForCoords(coords),
     battery: existing?.battery || 100,
     lastSeen: "Agora",
     history: existing?.history || {
@@ -1453,6 +1518,13 @@ function registrationPanel() {
       ${field("Estado", appData.farm.state, "text", "profileStateInput")}
       ${field("Tamanho do rebanho", `${appData.animals.length} animais monitorados`, "text", "profileHerdInput")}
     </div>
+    <div class="farm-boundary-editor">
+      <div class="boundary-heading"><strong>Quadrado de localização da fazenda</strong><span>Use latitude e longitude no formato: -19.526, -40.646</span></div>
+      ${field("Ponto A - noroeste", formatCoordinatePair(appData.farm.boundary.A), "text", "farmPointA")}
+      ${field("Ponto B - nordeste", formatCoordinatePair(appData.farm.boundary.B), "text", "farmPointB")}
+      ${field("Ponto C - sudeste", formatCoordinatePair(appData.farm.boundary.C), "text", "farmPointC")}
+      ${field("Ponto D - sudoeste", formatCoordinatePair(appData.farm.boundary.D), "text", "farmPointD")}
+    </div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px" data-save-profile>Salvar dados</button>
   `;
 }
@@ -1535,10 +1607,52 @@ function vetPanel() {
 }
 
 function educationPanel() {
+  const completed = state.educationCompleted.length;
+  const progress = Math.round((completed / EDUCATION_LESSONS.length) * 100);
   return `
-    <div class="sheet-header"><h2>Pecuaria 4.0</h2><button class="close-btn" data-close-modal>x</button></div>
-    <div class="timeline"><div>Como interpretar ruminacao e atividade em tempo real.</div><div>Boas praticas para quarentena sanitaria digital.</div><div>Rastreabilidade para mercados premium e exportacao.</div><div>Uso de LoRaWAN em propriedades rurais.</div></div>
+    <div class="sheet-header"><h2>Pecuaria 4.0</h2><button class="close-btn" data-close-modal aria-label="Fechar">x</button></div>
+    <section class="course-hero">
+      <div><span class="kicker">Trilha de campo</span><h3>Decisao melhor começa com dado confiavel.</h3><p>Aprenda a conectar sensores, manejo e resultado em uma rotina simples para a fazenda.</p></div>
+      <strong>${progress}%</strong>
+    </section>
+    <div class="course-progress"><span style="width:${progress}%"></span></div>
+    <div class="course-meta"><span>${completed} de ${EDUCATION_LESSONS.length} aulas concluidas</span><span>Certificado VitalBov</span></div>
+    <div class="lesson-list">
+      ${EDUCATION_LESSONS.map((lesson, index) => {
+        const done = state.educationCompleted.includes(lesson.id);
+        return `<article class="lesson-card ${done ? "is-complete" : ""}">
+          <div class="lesson-number">${done ? "OK" : String(index + 1).padStart(2, "0")}</div>
+          <div class="lesson-content"><div class="lesson-tags"><span>${lesson.level}</span><small>${lesson.duration}</small></div><h3>${lesson.title}</h3><p>${lesson.summary}</p></div>
+          <button class="btn ${done ? "btn-secondary" : "btn-primary"}" data-open-lesson="${lesson.id}">${done ? "Revisar" : "Abrir aula"}</button>
+        </article>`;
+      }).join("")}
+    </div>
   `;
+}
+
+function openEducationLesson(id) {
+  const lesson = EDUCATION_LESSONS.find((item) => item.id === id);
+  if (!lesson) return;
+  const done = state.educationCompleted.includes(id);
+  openModal(`
+    <div class="sheet-header"><h2>${lesson.title}</h2><button class="close-btn" data-close-modal aria-label="Fechar">x</button></div>
+    <div class="lesson-detail-head"><span class="status-badge healthy">${lesson.level}</span><span>${lesson.duration}</span></div>
+    <p class="lesson-lead">${lesson.summary}</p>
+    <h3>Ao concluir, você saberá:</h3>
+    <div class="lesson-checklist">${lesson.points.map((point) => `<div><span>+</span>${point}</div>`).join("")}</div>
+    <button class="btn ${done ? "btn-secondary" : "btn-primary"}" style="width:100%;margin-top:16px" data-complete-lesson="${lesson.id}">${done ? "Aula concluida" : "Marcar aula como concluida"}</button>
+  `);
+}
+
+function completeEducationLesson(id) {
+  if (!state.educationCompleted.includes(id)) {
+    state.educationCompleted.push(id);
+    addEvent("education.complete", `Aula ${id} concluida na trilha Pecuaria 4.0.`);
+    addNotice("E", "Aula concluida", "Seu progresso em Pecuaria 4.0 foi salvo.", "Agora");
+    persist();
+  }
+  closeModal();
+  openInfoPanel("education");
 }
 
 function openFilters() {
@@ -1624,6 +1738,14 @@ function saveProfile() {
   appData.farm.name = $("#profileFarmInput").value.trim() || appData.farm.name;
   appData.farm.city = $("#profileCityInput").value.trim() || appData.farm.city;
   appData.farm.state = $("#profileStateInput").value.trim() || appData.farm.state;
+  appData.farm.boundary = normalizeBoundary({
+    A: parseCoordinatePair($("#farmPointA")?.value, appData.farm.boundary.A),
+    B: parseCoordinatePair($("#farmPointB")?.value, appData.farm.boundary.B),
+    C: parseCoordinatePair($("#farmPointC")?.value, appData.farm.boundary.C),
+    D: parseCoordinatePair($("#farmPointD")?.value, appData.farm.boundary.D)
+  });
+  appData.farm.center = boundaryCenter(appData.farm.boundary);
+  fitAnimalsToFarm();
   appData.farm.updatedAt = Date.now();
   addNotice("P", "Perfil atualizado", "Dados do usuario e da fazenda foram salvos neste dispositivo.", "Agora");
   addEvent("farm.update", "Dados do usuario e da fazenda atualizados.");
@@ -1838,12 +1960,109 @@ function nextAnimalId() {
   return `VB-${String(max + 1).padStart(3, "0")}`;
 }
 
-function randomNearbyCoords() {
-  const [lat, lng] = appData.farm.center;
+function defaultFarmBoundary() {
+  const [lat, lng] = appData.farm.center || [-19.538, -40.630];
+  return {
+    A: [lat + 0.012, lng - 0.016],
+    B: [lat + 0.012, lng + 0.016],
+    C: [lat - 0.012, lng + 0.016],
+    D: [lat - 0.012, lng - 0.016]
+  };
+}
+
+function normalizeBoundary(boundary) {
+  const fallback = defaultFarmBoundary();
+  return ["A", "B", "C", "D"].reduce((result, label) => {
+    const point = boundary?.[label];
+    result[label] = Array.isArray(point) && point.length === 2 && point.every(Number.isFinite)
+      ? [Number(point[0]), Number(point[1])]
+      : fallback[label];
+    return result;
+  }, {});
+}
+
+function parseCoordinatePair(value, fallback) {
+  const numbers = String(value || "").split(/[,;\s]+/).map(Number).filter(Number.isFinite);
+  return numbers.length >= 2 ? [numbers[0], numbers[1]] : fallback;
+}
+
+function formatCoordinatePair(coords) {
+  return `${Number(coords?.[0] || 0).toFixed(6)}, ${Number(coords?.[1] || 0).toFixed(6)}`;
+}
+
+function boundaryCenter(boundary) {
+  const points = Object.values(boundary || {});
+  if (!points.length) return [-19.538, -40.630];
   return [
-    Number((lat + (Math.random() - 0.5) * 0.018).toFixed(6)),
-    Number((lng + (Math.random() - 0.5) * 0.022).toFixed(6))
+    Number((points.reduce((sum, point) => sum + point[0], 0) / points.length).toFixed(6)),
+    Number((points.reduce((sum, point) => sum + point[1], 0) / points.length).toFixed(6))
   ];
+}
+
+function farmBoundaryPoints() {
+  const boundary = normalizeBoundary(appData.farm.boundary);
+  return [boundary.A, boundary.B, boundary.C, boundary.D];
+}
+
+function farmBounds() {
+  const points = farmBoundaryPoints();
+  return {
+    minLat: Math.min(...points.map((point) => point[0])),
+    maxLat: Math.max(...points.map((point) => point[0])),
+    minLng: Math.min(...points.map((point) => point[1])),
+    maxLng: Math.max(...points.map((point) => point[1]))
+  };
+}
+
+function clampToFarm(coords) {
+  const bounds = farmBounds();
+  const fallback = boundaryCenter(appData.farm.boundary);
+  const lat = Number(coords?.[0]);
+  const lng = Number(coords?.[1]);
+  return [
+    Number(Math.min(bounds.maxLat, Math.max(bounds.minLat, Number.isFinite(lat) ? lat : fallback[0])).toFixed(6)),
+    Number(Math.min(bounds.maxLng, Math.max(bounds.minLng, Number.isFinite(lng) ? lng : fallback[1])).toFixed(6))
+  ];
+}
+
+function fitAnimalsToFarm() {
+  appData.animals = appData.animals.map((animal) => {
+    const coords = clampToFarm(animal.coords);
+    return { ...animal, coords, zone: zoneForCoords(coords) };
+  });
+}
+
+function zoneForCoords(coords) {
+  const center = boundaryCenter(appData.farm.boundary);
+  const lat = Number(coords?.[0]) || center[0];
+  const lng = Number(coords?.[1]) || center[1];
+  if (lat >= center[0] && lng <= center[1]) return "A";
+  if (lat >= center[0] && lng > center[1]) return "B";
+  if (lat < center[0] && lng > center[1]) return "C";
+  return "D";
+}
+
+function randomInsideFarm(zone = "C") {
+  const bounds = farmBounds();
+  const vertical = zone === "A" || zone === "B" ? 0.72 + Math.random() * 0.22 : 0.08 + Math.random() * 0.22;
+  const horizontal = zone === "A" || zone === "D" ? 0.08 + Math.random() * 0.22 : 0.72 + Math.random() * 0.22;
+  return [
+    Number((bounds.minLat + (bounds.maxLat - bounds.minLat) * vertical).toFixed(6)),
+    Number((bounds.minLng + (bounds.maxLng - bounds.minLng) * horizontal).toFixed(6))
+  ];
+}
+
+function coordsToMapPosition(coords) {
+  const bounds = farmBounds();
+  const lngRange = bounds.maxLng - bounds.minLng || 1;
+  const latRange = bounds.maxLat - bounds.minLat || 1;
+  const x = ((Number(coords?.[1]) - bounds.minLng) / lngRange) * 84 + 8;
+  const y = 92 - ((Number(coords?.[0]) - bounds.minLat) / latRange) * 84;
+  return { left: Math.min(92, Math.max(8, x)), top: Math.min(92, Math.max(8, y)) };
+}
+
+function randomNearbyCoords() {
+  return randomInsideFarm("C");
 }
 
 function defaultAnimalPhoto(seed = "") {
