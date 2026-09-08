@@ -16,7 +16,7 @@ static const uint8_t MPU_SCL = 22;
 static const uint8_t MAX_SDA = 2;
 static const uint8_t MAX_SCL = 4;
 static const uint8_t MPU_ADDR = 0x68;
-static const uint32_t BLE_INTERVAL = 3000;
+static const uint32_t BLE_INTERVAL = 1000;
 static const uint32_t MOTION_INTERVAL = 50;
 static const uint32_t VITAL_INTERVAL = 20;
 
@@ -140,7 +140,9 @@ void notifyTelemetry() {
   json += ",\"o\":" + String(spo2, 0) + ",\"m\":" + String(movement, 0);
   json += ",\"s\":" + String(sway, 0) + ",\"p\":" + String(heat, 0);
   json += ",\"c\":" + String(heatDetected ? 1 : 0);
-  json += ",\"q\":" + String(mpuReady && maxReady ? 1 : 0) + "}\n";
+  json += ",\"q\":" + String(mpuReady && maxReady ? 1 : 0);
+  json += ",\"u\":" + String(mpuReady ? 1 : 0);
+  json += ",\"v\":" + String(maxReady ? 1 : 0) + "}\n";
 
   // Fragmentos de 18 bytes funcionam mesmo sem negociar MTU maior.
   for (size_t i = 0; i < json.length(); i += 18) {

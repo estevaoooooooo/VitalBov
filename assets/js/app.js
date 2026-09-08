@@ -42,8 +42,6 @@ const state = {
   bleCharacteristic: null,
   bleBuffer: "",
   bleAnimalId: null,
-  bleSimulationTimer: null,
-  bleSimulationActive: false,
   ...loadSavedState()
 };
 
@@ -1017,13 +1015,11 @@ async function connectChipBluetooth(id) {
 
     state.bleDevice = device;
     state.activeChipAnimalId = id;
-    startBleSimulation(animal);
     device.addEventListener("gattserverdisconnected", () => {
       state.bleCharacteristic = null;
       state.bleDevice = null;
       state.bleAnimalId = null;
       state.bleBuffer = "";
-      stopBleSimulation();
       const status = $("#chipLiveStatus");
       if (status) status.textContent = "Bluetooth desconectado.";
     });
@@ -1040,11 +1036,7 @@ async function connectChipBluetooth(id) {
     if (liveStatus) liveStatus.textContent = "Bluetooth selecionado. Aguardando dados dos sensores...";
   } catch (error) {
     const reason = error?.message || "permissao ou dispositivo indisponivel";
-    if (state.bleDevice) {
-      if (liveStatus) liveStatus.textContent = `SIMULAÇÃO ativa. Bluetooth selecionado, mas o serviço real não respondeu: ${reason}`;
-    } else if (liveStatus) {
-      liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
-    }
+    if (liveStatus) liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
   }
 }
 
@@ -1075,52 +1067,20 @@ function consumeBleText(text) {
         swayScore: packet.s,
         heatProbability: packet.p,
         heatDetected: Boolean(packet.c),
-        signal: packet.q ? "Estavel" : "Parcial"
+        signal: packet.q ? "Estavel" : "Parcial",
+        mpuReady: Boolean(packet.u),
+        maxReady: Boolean(packet.v)
       } : packet;
-      const sensorsReady = packet.a ? Boolean(packet.q) : Boolean(telemetry.mpuReady && telemetry.maxReady);
-      if (!sensorsReady) {
-        const liveStatus = $("#chipLiveStatus");
-        if (liveStatus) liveStatus.textContent = "Bluetooth conectado, mas aguardando MPU6050 e MAX30102.";
-        continue;
-      }
-      stopBleSimulation();
       applyChipTelemetry(animal, telemetry, { silent: true });
       const liveStatus = $("#chipLiveStatus");
-      if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados reais dos sensores.";
+      if (liveStatus) liveStatus.textContent = telemetry.mpuReady && telemetry.maxReady
+        ? "Bluetooth conectado. Recebendo dados reais dos sensores."
+        : "Bluetooth conectado. Dados reais: verifique MPU6050/MAX30102.";
     } catch {
       const liveStatus = $("#chipLiveStatus");
-      if (liveStatus && !state.bleSimulationActive) liveStatus.textContent = "Leitura Bluetooth invalida.";
+      if (liveStatus) liveStatus.textContent = "Leitura Bluetooth invalida.";
     }
   }
-}
-
-function startBleSimulation(animal) {
-  stopBleSimulation();
-  state.bleSimulationActive = true;
-  let step = 0;
-
-  const tick = () => {
-    if (!state.bleSimulationActive || !state.bleDevice) return;
-    step += 1;
-    animal.chip.heartRate = Math.round(72 + Math.sin(step / 2) * 5);
-    animal.chip.spo2 = Math.round(96 + Math.sin(step / 3));
-    animal.chip.movementScore = Math.round(38 + (Math.sin(step / 2.5) + 1) * 18);
-    animal.chip.swayScore = Math.round(24 + (Math.sin(step / 3.5) + 1) * 22);
-    animal.chip.heatProbability = Math.round(animal.chip.movementScore * 0.45 + animal.chip.swayScore * 0.55);
-    animal.chip.heatDetected = animal.chip.heatProbability >= 62;
-    updateChipPanel(animal);
-    const liveStatus = $("#chipLiveStatus");
-    if (liveStatus) liveStatus.textContent = "SIMULAÇÃO ativa - aguardando dados reais do ESP32.";
-  };
-
-  tick();
-  state.bleSimulationTimer = setInterval(tick, 2000);
-}
-
-function stopBleSimulation() {
-  if (state.bleSimulationTimer) clearInterval(state.bleSimulationTimer);
-  state.bleSimulationTimer = null;
-  state.bleSimulationActive = false;
 }
 
 function applyChipTelemetry(animal, telemetry, options = {}) {
@@ -1132,11 +1092,12 @@ function applyChipTelemetry(animal, telemetry, options = {}) {
     return;
   }
 
-  animal.chip.heartRate = Math.round(Number(telemetry.heartRate) || animal.chip.heartRate);
-  animal.chip.spo2 = Math.round(Number(telemetry.spo2) || animal.chip.spo2);
-  animal.chip.movementScore = Math.round(Number(telemetry.movementScore) || animal.chip.movementScore);
-  animal.chip.swayScore = Math.round(Number(telemetry.swayScore) || animal.chip.swayScore);
-  animal.chip.heatProbability = Math.round(Number(telemetry.heatProbability) || animal.chip.heatProbability);
+  const numberOrPrevious = (value, previous) => Number.isFinite(Number(value)) ? Math.round(Number(value)) : previous;
+  animal.chip.heartRate = numberOrPrevious(telemetry.heartRate, animal.chip.heartRate);
+  animal.chip.spo2 = numberOrPrevious(telemetry.spo2, animal.chip.spo2);
+  animal.chip.movementScore = numberOrPrevious(telemetry.movementScore, animal.chip.movementScore);
+  animal.chip.swayScore = numberOrPrevious(telemetry.swayScore, animal.chip.swayScore);
+  animal.chip.heatProbability = numberOrPrevious(telemetry.heatProbability, animal.chip.heatProbability);
   animal.chip.heatDetected = Boolean(telemetry.heatDetected);
   animal.chip.signal = telemetry.signal || animal.chip.signal;
   animal.lastSeen = "Agora";
