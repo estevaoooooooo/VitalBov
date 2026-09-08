@@ -1077,10 +1077,9 @@ function consumeBleText(text) {
         heatDetected: Boolean(packet.c),
         signal: packet.q ? "Estavel" : "Parcial"
       } : packet;
-      stopBleSimulation();
       applyChipTelemetry(animal, telemetry, { silent: true });
       const liveStatus = $("#chipLiveStatus");
-      if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
+      if (liveStatus && !state.bleSimulationActive) liveStatus.textContent = "Bluetooth conectado. Recebendo dados em tempo real.";
     } catch {
       const liveStatus = $("#chipLiveStatus");
       if (liveStatus && !state.bleSimulationActive) liveStatus.textContent = "Leitura Bluetooth invalida.";
