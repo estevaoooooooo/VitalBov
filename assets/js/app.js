@@ -125,6 +125,9 @@ function bindEvents() {
     const clearPhotoButton = event.target.closest("[data-clear-photo]");
     if (clearPhotoButton) clearAnimalPhotoPreview();
 
+    const removeProfilePhotoButton = event.target.closest("[data-remove-profile-photo]");
+    if (removeProfilePhotoButton) removeProfilePhoto();
+
     const importButton = event.target.closest("[data-import-csv]");
     if (importButton) importCsvAnimals();
 
@@ -215,6 +218,7 @@ function bindEvents() {
   });
   document.addEventListener("change", (event) => {
     if (event.target.matches("#animalPhotoInput")) previewAnimalPhoto(event.target);
+    if (event.target.matches("#profilePhotoInput")) updateProfilePhoto(event.target);
     if (event.target.matches("#vaccineAnimalSelect")) renderVaccineView();
     if (event.target.matches("#vaccinePanelAnimal")) {
       const list = $("#vaccinePanelList");
@@ -726,7 +730,17 @@ function renderProfile() {
   $("#profileOwner").textContent = appData.farm.owner;
   $("#profileRole").textContent = `Produtor rural - ${appData.farm.name}`;
   $("#profileLocation").textContent = `${appData.farm.city}, ${appData.farm.state}`;
-  $("#profileAvatar").textContent = initials(appData.farm.owner);
+  const avatar = $("#profileAvatar");
+  avatar.textContent = "";
+  avatar.classList.toggle("has-photo", Boolean(appData.farm.profilePhoto));
+  if (appData.farm.profilePhoto) {
+    const image = document.createElement("img");
+    image.src = appData.farm.profilePhoto;
+    image.alt = `Foto de perfil de ${appData.farm.owner}`;
+    avatar.appendChild(image);
+  } else {
+    avatar.textContent = initials(appData.farm.owner);
+  }
   const devices = $("#view-profile [data-open-panel='devices'] span");
   if (devices) devices.textContent = `${appData.animals.length} ativos`;
 }
@@ -1382,6 +1396,39 @@ function imageFileToOptimizedDataUrl(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+async function updateProfilePhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    addNotice("!", "Arquivo invalido", "Selecione uma imagem para a foto de perfil.", "Agora");
+    renderNotices();
+    input.value = "";
+    return;
+  }
+  try {
+    appData.farm.profilePhoto = await imageFileToOptimizedDataUrl(file);
+    addNotice("P", "Foto atualizada", "Sua foto de perfil foi salva neste dispositivo.", "Agora");
+    addEvent("profile.photo.update", "Foto de perfil atualizada.");
+    input.value = "";
+    persist();
+    renderProfile();
+    renderNotices();
+  } catch {
+    addNotice("!", "Nao foi possivel salvar", "Tente escolher outra imagem.", "Agora");
+    renderNotices();
+  }
+}
+
+function removeProfilePhoto() {
+  if (!appData.farm.profilePhoto) return;
+  appData.farm.profilePhoto = "";
+  addNotice("P", "Foto removida", "O avatar com suas iniciais foi restaurado.", "Agora");
+  addEvent("profile.photo.remove", "Foto de perfil removida.");
+  persist();
+  renderProfile();
+  renderNotices();
 }
 
 function readFileAsDataUrl(file) {

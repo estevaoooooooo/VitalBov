@@ -8,7 +8,7 @@
     <title>VitalBov</title>
     <link rel="icon" href="assets/img/vitalbov-logo.jpeg" type="image/jpeg">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="assets/css/styles.css?v=store-v1">
+    <link rel="stylesheet" href="assets/css/styles.css?v=profile-v1">
   </head>
   <body>
     <section class="onboarding active" id="onboarding" aria-label="Boas-vindas VitalBov">
@@ -222,11 +222,20 @@
 
         <section class="view" id="view-profile" data-title="Perfil">
           <article class="profile-card">
-            <div class="avatar" id="profileAvatar">AM</div>
-            <div>
+            <div class="profile-avatar-wrap">
+              <div class="avatar" id="profileAvatar">AM</div>
+              <label class="profile-photo-upload" for="profilePhotoInput" title="Trocar foto de perfil">
+                <svg><use href="#icon-camera"></use></svg><span>Trocar foto</span>
+              </label>
+              <input class="sr-only" id="profilePhotoInput" type="file" accept="image/*">
+            </div>
+            <div class="profile-copy">
+              <span class="kicker">Perfil do produtor</span>
               <h2 id="profileOwner">Ana Martins</h2>
               <p id="profileRole">Produtora rural - Fazenda Boa Vista</p>
-              <span id="profileLocation">Colatina, Espirito Santo</span>
+              <span class="profile-location" id="profileLocation">Colatina, Espirito Santo</span>
+              <div class="profile-tags"><span>Conta verificada</span><span>Operacao ativa</span></div>
+              <button class="profile-remove-photo" data-remove-profile-photo>Remover foto</button>
             </div>
           </article>
           <div class="settings-list">
@@ -261,6 +270,7 @@
       <symbol id="icon-cow" viewBox="0 0 24 24"><path d="M6 10c-3-1-4-3-4-6 3 0 5 2 6 4m10 2c3-1 4-3 4-6-3 0-5 2-6 4M6 11c0-4 3-7 6-7s6 3 6 7v4c0 4-3 7-6 7s-6-3-6-7z"/><path d="M9 13h.1M15 13h.1M10 18h4"/></symbol>
       <symbol id="icon-store" viewBox="0 0 24 24"><path d="M4 10h16l-1 10H5zM7 10V7a5 5 0 0 1 10 0v3"/></symbol>
       <symbol id="icon-user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></symbol>
+      <symbol id="icon-camera" viewBox="0 0 24 24"><path d="M4 7h3l1.5-2h7L17 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="4"/></symbol>
       <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
       <symbol id="icon-farm" viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12M7 21v-7h10v7M9 10h6"/></symbol>
       <symbol id="icon-search" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/></symbol>
@@ -275,7 +285,7 @@
       <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 14a8 8 0 1 1-11-11 9 9 0 0 0 11 11Z"/></symbol>
     </svg>
 
-    <script src="assets/js/data.js?v=store-v1"></script>
-    <script src="assets/js/app.js?v=store-v1"></script>
+    <script src="assets/js/data.js?v=profile-v1"></script>
+    <script src="assets/js/app.js?v=profile-v1"></script>
   </body>
 </html>
