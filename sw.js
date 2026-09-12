@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitalbov-v19";
+const CACHE_NAME = "vitalbov-v20";
 const ASSETS = [
   "./",
   "./index.html",
@@ -12,6 +12,13 @@ const ASSETS = [
   "./assets/img/cow-4.svg",
   "./assets/img/cow-5.svg",
   "./assets/img/cow-6.svg",
+  "./assets/img/product-ear-tag.svg",
+  "./assets/img/product-gateway.svg",
+  "./assets/img/product-vaccine.svg",
+  "./assets/img/product-mineral.svg",
+  "./assets/img/product-rfid.svg",
+  "./assets/img/product-vet.svg",
+  "./assets/img/product-generic.svg",
   "./assets/img/vitalbov-logo.jpeg"
 ];
 

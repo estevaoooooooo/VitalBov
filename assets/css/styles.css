@@ -836,20 +836,34 @@ svg {
 
 .product-media {
   aspect-ratio: 1.1;
+  position: relative;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #e7efd7, #fff7df);
   color: var(--green-dark);
 }
 
+.product-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.product-media span {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.9);
+  color: var(--green-dark);
+  font-size: .68rem;
+  font-weight: 900;
+}
+
 .product-card.recommended {
   border-color: var(--lime);
   box-shadow: 0 12px 28px rgba(87, 118, 39, 0.14);
-}
-
-.product-media svg {
-  width: 52px;
-  height: 52px;
 }
 
 .product-body {
@@ -928,7 +942,7 @@ svg {
   transform: translateX(-50%);
   width: min(580px, calc(100% - 20px));
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   padding: 8px;
   border-radius: 14px;
@@ -965,6 +979,52 @@ body.dark .map-legend {
   color: white;
   background: var(--green);
 }
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.section-heading h2 { margin: 2px 0 4px; }
+.section-heading p { margin: 0; color: var(--muted); line-height: 1.45; }
+.section-kpi { color: var(--green-dark); white-space: nowrap; }
+.vaccine-selector { align-items: end; }
+.vaccine-selector .btn { min-height: 48px; }
+.vaccine-animal-head { display: flex; align-items: center; gap: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.vaccine-animal-head img { width: 58px; height: 58px; border-radius: var(--radius); object-fit: cover; }
+.vaccine-animal-head div { display: grid; gap: 4px; flex: 1; }
+.vaccine-animal-head span:not(.status-badge) { color: var(--muted); font-size: .82rem; }
+.vaccine-list { display: grid; gap: 10px; }
+.vaccine-record { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.vaccine-record.is-due { border-color: #d99b7e; background: #fff8f2; }
+.vaccine-record > div:first-child { display: grid; gap: 4px; }
+.vaccine-record > div:last-child { display: grid; justify-items: end; gap: 8px; }
+.vaccine-record span, .vaccine-record small { color: var(--muted); font-size: .78rem; }
+.vaccine-record strong { font-size: .98rem; }
+.vet-team-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 14px; }
+.vet-card { display: flex; gap: 9px; align-items: center; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.vet-avatar { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: var(--green); color: white; font-size: .7rem; font-weight: 900; }
+.vet-card div:last-child { display: grid; gap: 2px; min-width: 0; }
+.vet-card strong { font-size: .76rem; }
+.vet-card small, .vet-status { color: var(--muted); font-size: .68rem; line-height: 1.25; }
+.vet-status { color: var(--green-dark); font-weight: 800; }
+.cart-lines { display: grid; gap: 8px; margin: 12px 0 18px; }
+.cart-line { display: grid; grid-template-columns: 42px 1fr auto auto; gap: 10px; align-items: center; padding: 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.cart-line img { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; }
+.cart-line > div:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+.cart-line small { color: var(--muted); font-size: .7rem; }
+.quantity-control { display: flex; align-items: center; gap: 6px; }
+.quantity-control button { width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--green-dark); font-weight: 900; }
+.checkout-lead, .checkout-section-title { margin-top: 10px; }
+.checkout-section-title { margin-bottom: 8px; font-size: 1rem; }
+.payment-box { display: grid; gap: 9px; padding: 14px; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.payment-box p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+.payment-box code { padding: 8px; overflow-wrap: anywhere; background: var(--white); border: 1px dashed var(--line); font-size: .72rem; }
+.qr-image { width: 168px; height: 168px; justify-self: center; image-rendering: pixelated; background: white; padding: 6px; border-radius: 4px; }
+.confirmation-banner { display: grid; gap: 5px; padding: 14px; border-left: 4px solid var(--green); background: var(--paper); }
 
 .modal-root {
   position: fixed;
@@ -1293,4 +1353,14 @@ body.dark .map-legend {
   .btn {
     padding-inline: 10px;
   }
+}
+
+@media (max-width: 520px) {
+  .section-heading { align-items: flex-start; }
+  .section-kpi { font-size: .78rem; }
+  .vet-team-grid { grid-template-columns: 1fr; }
+  .vaccine-record { align-items: flex-start; }
+  .vaccine-record > div:last-child { justify-items: start; }
+  .cart-line { grid-template-columns: 38px 1fr auto; }
+  .cart-line > strong:last-child { grid-column: 2 / -1; text-align: right; }
 }

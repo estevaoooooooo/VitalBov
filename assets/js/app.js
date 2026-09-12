@@ -29,6 +29,18 @@ const EDUCATION_LESSONS = [
   { id: "indicadores", title: "Indicadores para decidir melhor", duration: "10 min", level: "Gestao", summary: "Converta dados do rebanho em indicadores de rotina.", points: ["Acompanhar tendencia", "Definir meta de manejo", "Medir resultado"] },
   { id: "plano", title: "Plano de implantacao em 30 dias", duration: "14 min", level: "Avancado", summary: "Leve a Pecuaria 4.0 da apresentacao para a operacao.", points: ["Escolher o primeiro lote", "Treinar a equipe", "Revisar resultados semanalmente"] }
 ];
+const VACCINE_CATALOG = [
+  { id: "brucelose", name: "Brucelose", interval: 365, protocol: "Dose anual" },
+  { id: "clostridioses", name: "Clostridioses", interval: 180, protocol: "Reforco semestral" },
+  { id: "raiva", name: "Raiva bovina", interval: 365, protocol: "Dose anual" },
+  { id: "aftosa", name: "Febre aftosa", interval: 180, protocol: "Campanha oficial" }
+];
+const VETERINARIANS = [
+  { id: "marina", name: "Dra. Marina Costa", specialty: "Sanidade e reproducao", status: "Online", slot: "Hoje, 15:30", initials: "MC" },
+  { id: "rafael", name: "Dr. Rafael Nunes", specialty: "Clinica de bovinos", status: "Disponivel", slot: "Hoje, 17:00", initials: "RN" },
+  { id: "luciana", name: "Dra. Luciana Alves", specialty: "Nutricao e manejo", status: "Disponivel", slot: "Amanha, 08:30", initials: "LA" },
+  { id: "paulo", name: "Dr. Paulo Mendes", specialty: "Reproducao de precisao", status: "Plantao", slot: "Amanha, 10:00", initials: "PM" }
+];
 
 const state = {
   activeView: "home",
@@ -164,6 +176,18 @@ function bindEvents() {
     const scheduleVetButton = event.target.closest("[data-schedule-vet]");
     if (scheduleVetButton) scheduleVetVisit();
 
+    const vaccineButton = event.target.closest("[data-register-vaccine]");
+    if (vaccineButton) registerVaccine(vaccineButton.dataset.registerVaccine, vaccineButton.dataset.animalId);
+
+    const cartIncrease = event.target.closest("[data-cart-increase]");
+    if (cartIncrease) changeCartQuantity(cartIncrease.dataset.cartIncrease, 1);
+
+    const cartDecrease = event.target.closest("[data-cart-decrease]");
+    if (cartDecrease) changeCartQuantity(cartDecrease.dataset.cartDecrease, -1);
+
+    const copyPixButton = event.target.closest("[data-copy-pix]");
+    if (copyPixButton) copyPixCode();
+
     if (event.target.matches("[data-close-modal]")) closeModal();
   });
 
@@ -191,6 +215,12 @@ function bindEvents() {
   });
   document.addEventListener("change", (event) => {
     if (event.target.matches("#animalPhotoInput")) previewAnimalPhoto(event.target);
+    if (event.target.matches("#vaccineAnimalSelect")) renderVaccineView();
+    if (event.target.matches("#vaccinePanelAnimal")) {
+      const list = $("#vaccinePanelList");
+      if (list) list.innerHTML = vaccineRecordsMarkup(findAnimal(event.target.value));
+    }
+    if (event.target.matches("#paymentMethod")) renderPaymentDetails();
   });
   window.addEventListener("resize", () => {
     drawChart();
@@ -204,6 +234,7 @@ function renderAll() {
   renderAnimals();
   renderTrackingList();
   renderStore();
+  renderVaccineView();
   renderProfile();
   drawChart();
 }
@@ -306,6 +337,7 @@ function normalizeState() {
       photo: animal.photo || defaultAnimalPhoto(animal.id),
       coords: clampToFarm(animal.coords || randomInsideFarm("C")),
       zone: animal.zone || zoneForCoords(animal.coords || appData.farm.center),
+      vaccines: normalizeVaccines(animal.vaccines, index),
       updatedAt: animal.updatedAt || Date.now()
     };
   });
@@ -674,7 +706,7 @@ function renderStore() {
 
   $("#productGrid").innerHTML = products.map((product) => `
     <article class="product-card ${isRecommendedProduct(product) ? "recommended" : ""}">
-      <div class="product-media"><svg><use href="#icon-tag"></use></svg></div>
+      <div class="product-media"><img src="${product.image || "assets/img/product-generic.svg"}" alt="${product.name}"><span>${product.category}</span></div>
       <div class="product-body">
         <h3>${product.name}</h3>
         <p>${product.recommended}</p>
@@ -1423,29 +1455,63 @@ function importCsvAnimals() {
 
 function openCheckout() {
   const grouped = groupCart();
-  const total = Object.values(grouped).reduce((sum, item) => sum + item.product.price * item.qty, 0);
+  const subtotal = cartSubtotal(grouped);
+  const freight = calculateFreight(subtotal);
+  const farmAddress = appData.farm.address || "Estrada Rural, s/n";
   openModal(`
     <div class="sheet-header">
-      <h2>Checkout</h2>
+      <h2>Finalizar compra</h2>
       <button class="close-btn" data-close-modal aria-label="Fechar">x</button>
     </div>
-    <p>${state.cart.length || 0} itens no carrinho para entrega em Colatina - ES.</p>
-    <div class="timeline">
-      ${Object.values(grouped).map((item) => `<div>${item.qty}x ${item.product.name} - ${formatCurrency(item.product.price * item.qty)}</div>`).join("") || "<div>Carrinho vazio.</div>"}
+    <p class="checkout-lead">Confira os itens, informe o endereco da entrega e escolha como pagar.</p>
+    <div class="cart-lines">
+      ${Object.values(grouped).map((item) => `<div class="cart-line">
+        <img src="${item.product.image || "assets/img/product-generic.svg"}" alt="">
+        <div><strong>${item.product.name}</strong><small>${formatCurrency(item.product.price)} cada</small></div>
+        <div class="quantity-control"><button data-cart-decrease="${item.product.id}" aria-label="Remover uma unidade">-</button><b>${item.qty}</b><button data-cart-increase="${item.product.id}" aria-label="Adicionar uma unidade">+</button></div>
+        <strong>${formatCurrency(item.product.price * item.qty)}</strong>
+      </div>`).join("") || "<div class=\"empty-state\">Carrinho vazio.</div>"}
     </div>
+    <h3 class="checkout-section-title">Endereco de entrega</h3>
+    <div class="form-grid two">
+      ${field("Responsavel", appData.farm.owner, "text", "deliveryName")}
+      ${field("CEP", "29700-000", "text", "deliveryCep")}
+      ${field("Endereco / estrada", farmAddress, "text", "deliveryAddress")}
+      ${field("Numero / referencia", "Sede da fazenda", "text", "deliveryNumber")}
+      ${field("Cidade", `${appData.farm.city} - ${appData.farm.state}`, "text", "deliveryCity")}
+    </div>
+    <h3 class="checkout-section-title">Pagamento</h3>
+    ${selectField("Forma de pagamento", "pix", ["pix", "cartao", "boleto"], "paymentMethod", { pix: "Pix - QR Code", cartao: "Cartao de credito", boleto: "Boleto bancario" })}
+    <div id="paymentDetails"></div>
     <div class="detail-metrics">
-      <div><span>Subtotal</span><strong>${formatCurrency(total)}</strong></div>
-      <div><span>Frete rural</span><strong>${formatCurrency(state.cart.length ? 39.9 : 0)}</strong></div>
+      <div><span>Subtotal</span><strong>${formatCurrency(subtotal)}</strong></div>
+      <div><span>Frete rural</span><strong>${freight ? formatCurrency(freight) : "Gratis"}</strong></div>
+      <div><span>Total</span><strong>${formatCurrency(subtotal + freight)}</strong></div>
     </div>
-    <button class="btn btn-primary" style="width:100%" data-finalize-order>Finalizar pedido</button>
+    <button class="btn btn-primary" style="width:100%" data-finalize-order>Confirmar pedido</button>
   `);
+  renderPaymentDetails();
 }
 
 function finalizeOrder() {
   if (!state.cart.length) return;
   const grouped = groupCart();
-  const total = Object.values(grouped).reduce((sum, item) => sum + item.product.price * item.qty, 0);
-  appData.orders.unshift({
+  const subtotal = cartSubtotal(grouped);
+  const freight = calculateFreight(subtotal);
+  const payment = $("#paymentMethod")?.value || "pix";
+  const address = {
+    name: $("#deliveryName")?.value.trim(),
+    cep: $("#deliveryCep")?.value.trim(),
+    street: $("#deliveryAddress")?.value.trim(),
+    number: $("#deliveryNumber")?.value.trim(),
+    city: $("#deliveryCity")?.value.trim()
+  };
+  if (!address.name || !address.street || !address.city) {
+    addNotice("!", "Endereco incompleto", "Preencha responsavel, endereco e cidade para continuar.", "Agora");
+    renderNotices();
+    return;
+  }
+  const order = {
     id: cryptoRandomId("order"),
     createdAt: Date.now(),
     status: "confirmado",
@@ -1455,16 +1521,84 @@ function finalizeOrder() {
       qty: item.qty,
       unitPrice: item.product.price
     })),
-    subtotal: total,
-    freight: 39.9,
-    total: total + 39.9
-  });
-  addNotice("L", "Pedido confirmado", "Compra enviada para faturamento e logistica rural.", "Agora");
-  addEvent("store.order.create", `Pedido confirmado no valor de ${formatCurrency(total + 39.9)}.`);
+    subtotal,
+    freight,
+    total: subtotal + freight,
+    payment,
+    deliveryAddress: address
+  };
+  appData.orders.unshift(order);
+  addNotice("L", "Pedido confirmado", `Entrega para ${address.city}. Pagamento: ${paymentLabel(payment)}.`, "Agora");
+  addEvent("store.order.create", `Pedido ${order.id} confirmado no valor de ${formatCurrency(order.total)}.`);
   state.cart = [];
-  closeModal();
   persist();
   renderAll();
+  openModal(orderConfirmationPanel(order));
+}
+
+function cartSubtotal(grouped = groupCart()) {
+  return Object.values(grouped).reduce((sum, item) => sum + item.product.price * item.qty, 0);
+}
+
+function calculateFreight(subtotal) {
+  if (!subtotal) return 0;
+  return subtotal >= 1000 ? 0 : 39.9;
+}
+
+function paymentLabel(payment) {
+  return { pix: "Pix", cartao: "cartao de credito", boleto: "boleto" }[payment] || "Pix";
+}
+
+function paymentPayload(order) {
+  return `VITALBOV|${order.id}|${order.total.toFixed(2)}|${order.deliveryAddress.city}|${order.deliveryAddress.cep}`;
+}
+
+function qrUrl(payload) {
+  return `https://quickchart.io/qr?text=${encodeURIComponent(payload)}&size=220&margin=2`;
+}
+
+function renderPaymentDetails() {
+  const container = $("#paymentDetails");
+  if (!container) return;
+  const method = $("#paymentMethod")?.value || "pix";
+  const grouped = groupCart();
+  const total = cartSubtotal(grouped) + calculateFreight(cartSubtotal(grouped));
+  if (method === "pix") {
+    const payload = `VITALBOV|PAGAMENTO|${total.toFixed(2)}`;
+    container.innerHTML = `<div class="payment-box"><strong>Pix com QR Code</strong><p>O QR abaixo e gerado com o valor total do pedido. No prototipo, confirme o pagamento no seu banco.</p><img class="qr-image" src="${qrUrl(payload)}" alt="QR Code Pix do pedido"><code id="pixCode">${payload}</code><button class="btn btn-secondary" data-copy-pix>Copiar codigo Pix</button></div>`;
+  } else if (method === "cartao") {
+    container.innerHTML = `<div class="payment-box"><strong>Cartao de credito</strong><p>O pagamento sera processado pela equipe VitalBov apos a confirmacao do pedido.</p></div>`;
+  } else {
+    container.innerHTML = `<div class="payment-box"><strong>Boleto bancario</strong><p>O boleto sera disponibilizado no historico de pedidos apos a confirmacao.</p></div>`;
+  }
+}
+
+function copyPixCode() {
+  const code = $("#pixCode")?.textContent;
+  if (!code) return;
+  const copyTask = navigator.clipboard?.writeText(code);
+  if (copyTask) copyTask.then(() => addNotice("L", "Codigo copiado", "O codigo Pix foi copiado para a area de transferencia.", "Agora"));
+}
+
+function orderConfirmationPanel(order) {
+  const pix = order.payment === "pix";
+  return `<div class="sheet-header"><h2>Pedido confirmado</h2><button class="close-btn" data-close-modal aria-label="Fechar">x</button></div>
+    <div class="confirmation-banner"><strong>${order.id}</strong><span>Recebemos seu pedido e vamos preparar a entrega.</span></div>
+    <div class="detail-metrics"><div><span>Total</span><strong>${formatCurrency(order.total)}</strong></div><div><span>Pagamento</span><strong>${paymentLabel(order.payment)}</strong></div><div><span>Frete</span><strong>${order.freight ? formatCurrency(order.freight) : "Gratis"}</strong></div></div>
+    <div class="timeline"><div><strong>Entrega</strong><br>${order.deliveryAddress.street}, ${order.deliveryAddress.number}<br>${order.deliveryAddress.city} - CEP ${order.deliveryAddress.cep}</div></div>
+    ${pix ? `<div class="payment-box"><strong>QR Code Pix do pedido</strong><img class="qr-image" src="${qrUrl(paymentPayload(order))}" alt="QR Code Pix do pedido"><code>${paymentPayload(order)}</code></div>` : ""}`;
+}
+
+function changeCartQuantity(productId, amount) {
+  if (amount > 0) state.cart.push(productId);
+  if (amount < 0) {
+    const index = state.cart.indexOf(productId);
+    if (index >= 0) state.cart.splice(index, 1);
+  }
+  persist();
+  renderStore();
+  if (state.cart.length) openCheckout();
+  else closeModal();
 }
 
 function groupCart() {
@@ -1514,6 +1648,7 @@ function registrationPanel() {
       ${field("Senha", "********", "password", "profilePasswordInput")}
       ${field("Verificacao por e-mail", appData.farm.verified ? "Confirmado" : "Pendente", "text", "profileVerifiedInput")}
       ${field("Nome da fazenda", appData.farm.name, "text", "profileFarmInput")}
+      ${field("Endereco de entrega", appData.farm.address || "Estrada Rural, s/n", "text", "profileAddressInput")}
       ${field("Cidade", appData.farm.city, "text", "profileCityInput")}
       ${field("Estado", appData.farm.state, "text", "profileStateInput")}
       ${field("Tamanho do rebanho", `${appData.animals.length} animais monitorados`, "text", "profileHerdInput")}
@@ -1565,7 +1700,8 @@ function ordersPanel() {
           <strong>${order.id}</strong><br>
           ${new Date(order.createdAt).toLocaleString("pt-BR")} | ${order.status}<br>
           ${order.items.map((item) => `${item.qty}x ${item.name}`).join(", ")}<br>
-          Total: ${formatCurrency(order.total)}
+          Total: ${formatCurrency(order.total)} | ${paymentLabel(order.payment || "pix")}<br>
+          ${order.deliveryAddress ? `Entrega: ${order.deliveryAddress.street}, ${order.deliveryAddress.number} - ${order.deliveryAddress.city}` : "Entrega: Colatina - ES"}
         </div>
       `).join("") : "<div>Nenhum pedido confirmado ainda.</div>"}
     </div>
@@ -1590,20 +1726,62 @@ function databasePanel() {
 }
 
 function vaccinesPanel() {
-  const total = appData.animals.length;
+  const selected = $("#vaccineAnimalSelect")?.value || appData.animals[0]?.id;
   return `
     <div class="sheet-header"><h2>Carteira de vacinacao</h2><button class="close-btn" data-close-modal>x</button></div>
-    <div class="timeline"><div>Brucelose: ${Math.max(1, Math.round(total * 0.24))} femeas jovens atualizadas.</div><div>Clostridioses: reforco previsto para 18/06/2026.</div><div>Raiva: ${Math.round(total * 0.96)} de ${total} animais cobertos.</div></div>
+    ${selectField("Animal", selected, appData.animals.map((animal) => animal.id), "vaccinePanelAnimal", Object.fromEntries(appData.animals.map((animal) => [animal.id, `${animal.id} - ${animal.name}`])))}
+    <div id="vaccinePanelList">${vaccineRecordsMarkup(findAnimal(selected) || appData.animals[0])}</div>
   `;
 }
 
 function vetPanel() {
+  const firstAnimal = appData.animals[0];
   return `
     <div class="sheet-header"><h2>Apoio Veterinario</h2><button class="close-btn" data-close-modal>x</button></div>
-    <div class="timeline"><div><strong>Dra. Marina Costa</strong><br>Online agora para triagem sanitaria.</div><div>Proximo horario disponivel: hoje, 15:30.</div></div>
-    <label class="form-field"><span>Mensagem</span><textarea id="vetMessageInput" rows="4">Animal ${appData.animals[0]?.id || "VB-000"} com alteracao detectada. Solicito orientacao.</textarea></label>
+    <p class="checkout-lead">Escolha um profissional, o animal e envie sua duvida. O pedido fica registrado no historico local.</p>
+    <div class="vet-team-grid">${VETERINARIANS.map((vet) => `<article class="vet-card"><div class="vet-avatar">${vet.initials}</div><div><strong>${vet.name}</strong><small>${vet.specialty}</small><span class="vet-status">${vet.status} - ${vet.slot}</span></div></article>`).join("")}</div>
+    <div class="form-grid two">
+      ${selectField("Veterinario", VETERINARIANS[0].id, VETERINARIANS.map((vet) => vet.id), "vetSelect", Object.fromEntries(VETERINARIANS.map((vet) => [vet.id, `${vet.name} - ${vet.specialty}`])))}
+      ${selectField("Animal", firstAnimal?.id || "", appData.animals.map((animal) => animal.id), "vetAnimalSelect", Object.fromEntries(appData.animals.map((animal) => [animal.id, `${animal.id} - ${animal.name}`])))}
+    </div>
+    <label class="form-field"><span>Mensagem</span><textarea id="vetMessageInput" rows="4">Animal ${firstAnimal?.id || "VB-000"} com alteracao detectada. Solicito orientacao.</textarea></label>
     <div class="action-strip"><button class="btn btn-primary" data-send-vet>Enviar chat</button><button class="btn btn-secondary" data-schedule-vet>Agendar visita</button></div>
   `;
+}
+
+function renderVaccineView() {
+  const select = $("#vaccineAnimalSelect");
+  const list = $("#vaccineWallet");
+  if (!select || !list) return;
+  const current = select.value || appData.animals[0]?.id;
+  select.innerHTML = appData.animals.map((animal) => `<option value="${animal.id}" ${animal.id === current ? "selected" : ""}>${animal.id} - ${animal.name}</option>`).join("");
+  const animal = findAnimal(select.value) || appData.animals[0];
+  const records = animal?.vaccines || [];
+  const covered = records.filter((record) => record.status === "Em dia").length;
+  $("#vaccineCoverage").textContent = `${covered}/${records.length || VACCINE_CATALOG.length} em dia`;
+  list.innerHTML = animal ? `<div class="vaccine-animal-head"><img src="${animal.photo}" alt=""><div><strong>${animal.id} - ${animal.name}</strong><span>${animal.breed} | ${animal.lot}</span></div><span class="status-badge healthy">${covered}/${records.length} protegidas</span></div>${vaccineRecordsMarkup(animal)}` : `<div class="empty-state">Cadastre um animal para abrir a carteira.</div>`;
+}
+
+function vaccineRecordsMarkup(animal) {
+  if (!animal) return "<div class=\"empty-state\">Nenhum animal selecionado.</div>";
+  return `<div class="vaccine-list">${(animal.vaccines || []).map((record) => `<article class="vaccine-record ${record.status !== "Em dia" ? "is-due" : ""}"><div><strong>${record.name}</strong><span>${record.protocol}</span><small>Ultima dose: ${formatDate(record.lastDate)} | Proxima: ${formatDate(record.nextDate)}</small></div><div><span class="status-badge ${record.status === "Em dia" ? "healthy" : "alert"}">${record.status}</span><button class="btn btn-secondary" data-register-vaccine="${record.id}" data-animal-id="${animal.id}">Registrar dose</button></div></article>`).join("")}</div>`;
+}
+
+function registerVaccine(vaccineId, animalId) {
+  const animal = findAnimal(animalId);
+  const record = animal?.vaccines?.find((item) => item.id === vaccineId);
+  if (!animal || !record) return;
+  const today = new Date();
+  record.lastDate = today.toISOString().slice(0, 10);
+  const catalog = VACCINE_CATALOG.find((item) => item.id === vaccineId);
+  today.setDate(today.getDate() + (catalog?.interval || 365));
+  record.nextDate = today.toISOString().slice(0, 10);
+  record.status = "Em dia";
+  addNotice("V", "Vacina registrada", `${record.name} aplicada em ${animal.id}.`, "Agora");
+  addEvent("vaccine.apply", `${record.name} registrada para ${animal.id}.`);
+  persist();
+  renderAll();
+  if ($("#modalRoot").classList.contains("active")) openInfoPanel("vaccines");
 }
 
 function educationPanel() {
@@ -1714,16 +1892,20 @@ function registerTreatment(id) {
 
 function sendVetMessage() {
   const message = $("#vetMessageInput")?.value.trim();
-  addNotice("V", "Mensagem enviada", message ? `Veterinario recebeu: ${message}` : "Mensagem enviada ao apoio veterinario.", "Agora");
-  addEvent("vet.chat", message || "Mensagem enviada ao apoio veterinario.");
+  const vet = VETERINARIANS.find((item) => item.id === $("#vetSelect")?.value) || VETERINARIANS[0];
+  const animal = findAnimal($("#vetAnimalSelect")?.value) || appData.animals[0];
+  addNotice("V", `Mensagem para ${vet.name}`, message ? `${animal?.id || "Animal"}: ${message}` : "Mensagem enviada ao apoio veterinario.", "Agora");
+  addEvent("vet.chat", `${vet.name} recebeu uma mensagem sobre ${animal?.id || "animal"}.`);
   closeModal();
   persist();
   renderAll();
 }
 
 function scheduleVetVisit() {
-  addNotice("V", "Visita agendada", "Apoio veterinario agendado para hoje as 15:30.", "Agora");
-  addEvent("vet.schedule", "Visita veterinaria agendada para hoje as 15:30.");
+  const vet = VETERINARIANS.find((item) => item.id === $("#vetSelect")?.value) || VETERINARIANS[0];
+  const animal = findAnimal($("#vetAnimalSelect")?.value) || appData.animals[0];
+  addNotice("V", "Visita agendada", `${vet.name} atendera ${animal?.id || "o animal"} em ${vet.slot}.`, "Agora");
+  addEvent("vet.schedule", `Visita com ${vet.name} agendada para ${animal?.id || "animal"}.`);
   closeModal();
   persist();
   renderAll();
@@ -1736,6 +1918,7 @@ function saveProfile() {
   appData.farm.phone = $("#profilePhoneInput").value.trim();
   appData.farm.verified = true;
   appData.farm.name = $("#profileFarmInput").value.trim() || appData.farm.name;
+  appData.farm.address = $("#profileAddressInput")?.value.trim() || appData.farm.address;
   appData.farm.city = $("#profileCityInput").value.trim() || appData.farm.city;
   appData.farm.state = $("#profileStateInput").value.trim() || appData.farm.state;
   appData.farm.boundary = normalizeBoundary({
@@ -2077,6 +2260,22 @@ function formatCurrency(value) {
 
 function formatDate(date) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("pt-BR");
+}
+
+function normalizeVaccines(vaccines, index = 0) {
+  const fallbackDate = new Date();
+  fallbackDate.setMonth(fallbackDate.getMonth() - (index + 1));
+  return VACCINE_CATALOG.map((catalog, catalogIndex) => {
+    const saved = vaccines?.find((item) => item.id === catalog.id) || {};
+    const last = saved.lastDate || new Date(fallbackDate.getTime() - catalogIndex * 86400000 * 18).toISOString().slice(0, 10);
+    const next = saved.nextDate || (() => {
+      const date = new Date(`${last}T00:00:00`);
+      date.setDate(date.getDate() + catalog.interval);
+      return date.toISOString().slice(0, 10);
+    })();
+    const overdue = new Date(`${next}T23:59:59`) < new Date();
+    return { ...catalog, ...saved, lastDate: last, nextDate: next, status: saved.status || (overdue ? "Vencida" : "Em dia") };
+  });
 }
 
 function escapeHtml(value) {

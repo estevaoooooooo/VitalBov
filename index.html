@@ -8,7 +8,7 @@
     <title>VitalBov</title>
     <link rel="icon" href="assets/img/vitalbov-logo.jpeg" type="image/jpeg">
     <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="assets/css/styles.css?v=395ee72">
+    <link rel="stylesheet" href="assets/css/styles.css?v=store-v1">
   </head>
   <body>
     <section class="onboarding active" id="onboarding" aria-label="Boas-vindas VitalBov">
@@ -192,6 +192,18 @@
           <div class="animal-grid" id="animalGrid"></div>
         </section>
 
+        <section class="view" id="view-vaccines" data-title="Carteira vacinal">
+          <div class="section-heading">
+            <div><span class="kicker">Sanidade preventiva</span><h2>Carteira de vacinacao</h2><p>Escolha o animal e acompanhe doses, lotes e proximos reforcos.</p></div>
+            <strong class="section-kpi" id="vaccineCoverage">0/0 em dia</strong>
+          </div>
+          <div class="form-grid two vaccine-selector">
+            <label class="form-field"><span>Animal selecionado</span><select id="vaccineAnimalSelect"></select></label>
+            <button class="btn btn-secondary" data-open-panel="vet"><svg><use href="#icon-chat"></use></svg>Falar com veterinario</button>
+          </div>
+          <div id="vaccineWallet"></div>
+        </section>
+
         <section class="view" id="view-store" data-title="Loja">
           <div class="cart-summary">
             <div>
@@ -235,6 +247,7 @@
         <button class="nav-item active" data-view="home"><svg><use href="#icon-home"></use></svg><span>Inicio</span></button>
         <button class="nav-item" data-view="tracking"><svg><use href="#icon-map"></use></svg><span>Rastrear</span></button>
         <button class="nav-item" data-view="animals"><svg><use href="#icon-cow"></use></svg><span>Animais</span></button>
+        <button class="nav-item" data-view="vaccines"><svg><use href="#icon-shield"></use></svg><span>Vacinas</span></button>
         <button class="nav-item" data-view="store"><svg><use href="#icon-store"></use></svg><span>Loja</span></button>
         <button class="nav-item" data-view="profile"><svg><use href="#icon-user"></use></svg><span>Perfil</span></button>
       </nav>
@@ -262,7 +275,7 @@
       <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 14a8 8 0 1 1-11-11 9 9 0 0 0 11 11Z"/></symbol>
     </svg>
 
-    <script src="assets/js/data.js?v=395ee72"></script>
-    <script src="assets/js/app.js?v=395ee72"></script>
+    <script src="assets/js/data.js?v=store-v1"></script>
+    <script src="assets/js/app.js?v=store-v1"></script>
   </body>
 </html>

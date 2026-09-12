@@ -4,6 +4,7 @@ window.VITALBOV_DATA = {
     owner: "Ana Martins",
     city: "Colatina",
     state: "ES",
+    address: "Estrada Rural Boa Vista, km 12",
     center: [-19.538, -40.630],
     boundary: {
       A: [-19.526, -40.646],
@@ -198,14 +199,18 @@ window.VITALBOV_DATA = {
     { icon: "R", title: "Relatorio pronto", text: "Saude do rebanho - maio disponivel para PDF.", time: "3 h" }
   ],
   products: [
-    { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria" },
-    { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes" },
-    { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario" },
-    { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento" },
-    { id: "p5", name: "Suplemento Mineral Premium", category: "Nutriccao", price: 148.7, recommended: "Suporte a matrizes em lactacao" },
-    { id: "p6", name: "Aplicador RFID Pro", category: "Manejo", price: 419, recommended: "Agiliza cadastro em lote" },
-    { id: "p7", name: "Assinatura Vet 24h", category: "Servicos", price: 89.9, recommended: "Chat e agendamento prioritario" },
-    { id: "p8", name: "Relatorio Exportacao Plus", category: "Servicos", price: 199, recommended: "Rastreabilidade para certificacao" }
+    { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria", image: "assets/img/product-ear-tag.svg" },
+    { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes", image: "assets/img/product-gateway.svg" },
+    { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario", image: "assets/img/product-vaccine.svg" },
+    { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento", image: "assets/img/product-vaccine.svg" },
+    { id: "p5", name: "Suplemento Mineral Premium", category: "Nutricao", price: 148.7, recommended: "Suporte a matrizes em lactacao", image: "assets/img/product-mineral.svg" },
+    { id: "p6", name: "Aplicador RFID Pro", category: "Manejo", price: 419, recommended: "Agiliza cadastro em lote", image: "assets/img/product-rfid.svg" },
+    { id: "p7", name: "Assinatura Vet 24h", category: "Servicos", price: 89.9, recommended: "Chat e agendamento prioritario", image: "assets/img/product-vet.svg" },
+    { id: "p8", name: "Relatorio Exportacao Plus", category: "Servicos", price: 199, recommended: "Rastreabilidade para certificacao", image: "assets/img/product-gateway.svg" },
+    { id: "p9", name: "Kit Coleta e Higiene", category: "Sanidade", price: 74.9, recommended: "Rotina de coleta sem contaminacao", image: "assets/img/product-vaccine.svg" },
+    { id: "p10", name: "Suplemento para Bezerros", category: "Nutricao", price: 119.9, recommended: "Apoio ao desenvolvimento dos bezerros", image: "assets/img/product-mineral.svg" },
+    { id: "p11", name: "Leitor RFID de Curral", category: "Manejo", price: 679, recommended: "Leitura rapida no manejo", image: "assets/img/product-rfid.svg" },
+    { id: "p12", name: "Consulta Veterinaria Avulsa", category: "Servicos", price: 149.9, recommended: "Orientacao remota com especialista", image: "assets/img/product-vet.svg" }
   ],
   chartData: {
     rumination: { label: "Ruminacao media (min)", values: [425, 438, 431, 454, 448, 466, 452], color: "#577627" },
