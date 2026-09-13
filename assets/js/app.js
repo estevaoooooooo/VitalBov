@@ -16,18 +16,18 @@ const STATUS_COLORS = {
 const LEAFLET_CSS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS_URL = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const EDUCATION_LESSONS = [
-  { id: "fundamentos", title: "Fundamentos da Pecuaria 4.0", duration: "8 min", level: "Essencial", summary: "Como dados, sensores e manejo integrado melhoram a rotina da fazenda.", points: ["Conectar tecnologia a decisoes de campo", "Separar alerta de tendencia", "Criar uma rotina diaria de leitura"] },
-  { id: "sensores", title: "Sensores e qualidade da leitura", duration: "10 min", level: "Essencial", summary: "Leia movimento, temperatura e sinais vitais com confianca.", points: ["Verificar posicionamento do sensor", "Reconhecer leituras incompletas", "Registrar a primeira linha de base"] },
-  { id: "cio", title: "Deteccao de cio orientada por dados", duration: "9 min", level: "Reproducao", summary: "Cruze balanceio, atividade e historico para priorizar observacoes.", points: ["Identificar aumento de atividade", "Confirmar sinais no curral", "Planejar a janela fertil"] },
-  { id: "sanidade", title: "Sanidade e alerta precoce", duration: "12 min", level: "Sanidade", summary: "Transforme alteracoes de comportamento em protocolos de cuidado.", points: ["Comparar com o basal do animal", "Classificar alerta e urgencia", "Acionar a equipe veterinaria"] },
-  { id: "quarentena", title: "Quarentena Digital", duration: "7 min", level: "Sanidade", summary: "Isole, acompanhe e documente animais que precisam de atencao.", points: ["Registrar o motivo do isolamento", "Acompanhar a evolucao", "Liberar somente com criterio"] },
-  { id: "mapa", title: "Mapa vivo e georreferenciamento", duration: "8 min", level: "Operacao", summary: "Use o territorio da fazenda para localizar animais e lotes.", points: ["Ler limites A-B-C-D", "Encontrar o animal por area", "Planejar a ronda de manejo"] },
-  { id: "lotes", title: "Lotes e manejo de precisao", duration: "11 min", level: "Operacao", summary: "Organize grupos por finalidade, fase e risco.", points: ["Definir lotes coerentes", "Filtrar o que exige acao", "Reduzir deslocamentos"] },
-  { id: "rastreabilidade", title: "Rastreabilidade do rebanho", duration: "10 min", level: "Gestao", summary: "Mantenha um historico confiavel do animal do nascimento ao abate.", points: ["Padronizar identificadores", "Auditar mudancas", "Preparar relatorios"] },
-  { id: "offline", title: "Operacao offline no campo", duration: "6 min", level: "Operacao", summary: "Continue registrando mesmo quando a internet desaparecer.", points: ["Entender o modo offline", "Sincronizar com seguranca", "Conferir leituras pendentes"] },
-  { id: "lorawan", title: "Conectividade rural e LoRaWAN", duration: "9 min", level: "Tecnologia", summary: "Escolha conectividade para areas extensas e de baixa cobertura.", points: ["Diferenciar BLE, Wi-Fi e LoRaWAN", "Posicionar gateways", "Monitorar sinal"] },
-  { id: "indicadores", title: "Indicadores para decidir melhor", duration: "10 min", level: "Gestao", summary: "Converta dados do rebanho em indicadores de rotina.", points: ["Acompanhar tendencia", "Definir meta de manejo", "Medir resultado"] },
-  { id: "plano", title: "Plano de implantacao em 30 dias", duration: "14 min", level: "Avancado", summary: "Leve a Pecuaria 4.0 da apresentacao para a operacao.", points: ["Escolher o primeiro lote", "Treinar a equipe", "Revisar resultados semanalmente"] }
+  { id: "fundamentos", title: "Fundamentos da Pecuaria 4.0", duration: "8 min", level: "Essencial", summary: "Como dados, sensores e manejo integrado melhoram a rotina da fazenda.", content: ["Pecuaria 4.0 e a combinacao de pessoas, manejo e tecnologia para decidir melhor. O sensor nao substitui a observacao do produtor: ele ajuda a encontrar mais cedo o animal que precisa de atencao.", "Comece com uma rotina simples: confira os alertas, compare cada animal com seu proprio historico e registre a acao tomada. Depois, revise se a acao resolveu o problema."], points: ["Conectar tecnologia a decisoes de campo", "Separar alerta de tendencia", "Criar uma rotina diaria de leitura"], questions: [{ prompt: "Qual e o papel principal dos sensores na fazenda?", options: ["Substituir toda a equipe", "Apoiar a observacao e a decisao", "Aplicar medicamentos automaticamente"], answer: 1, explanation: "O sensor amplia a observacao e prioriza o manejo, mas a decisao continua sendo da equipe." }, { prompt: "O que deve ser comparado antes de classificar um alerta?", options: ["Apenas a media do rebanho", "O basal e o historico do animal", "Somente a cor do marcador"], answer: 1, explanation: "O historico individual reduz falsos alarmes e mostra o que mudou para aquele animal." }, { prompt: "Qual e uma boa primeira rotina?", options: ["Ler alertas, conferir o animal e registrar a acao", "Ignorar alertas por uma semana", "Alterar todos os lotes diariamente"], answer: 0, explanation: "Uma rotina curta e repetivel cria confianca nos dados e no manejo." }] },
+  { id: "sensores", title: "Sensores e qualidade da leitura", duration: "10 min", level: "Essencial", summary: "Leia movimento, temperatura e sinais vitais com confianca.", content: ["Uma leitura boa depende de instalacao correta, bateria e contato adequado. Antes de interpretar um numero, confira se o dispositivo esta associado ao animal certo e se a ultima leitura chegou completa.", "Use uma linha de base: observe alguns dias de comportamento normal. Uma leitura isolada pode ser ruido; varias leituras coerentes formam uma tendencia mais confiavel."], points: ["Verificar posicionamento do sensor", "Reconhecer leituras incompletas", "Registrar a primeira linha de base"], questions: [{ prompt: "O que conferir primeiro quando uma leitura parece estranha?", options: ["Animal associado, instalacao e bateria", "Somente o nome do lote", "A previsao do tempo"], answer: 0, explanation: "Identificacao, posicionamento e energia sao as primeiras verificacoes de qualidade." }, { prompt: "Por que criar uma linha de base?", options: ["Para apagar historicos", "Para comparar o padrao normal do animal", "Para aumentar artificialmente os alertas"], answer: 1, explanation: "A linha de base mostra o que e normal e ajuda a reconhecer mudancas reais." }, { prompt: "Uma leitura isolada sempre confirma uma doenca?", options: ["Sim, sem verificacao", "Nao; e preciso observar tendencia e contexto", "Somente se o animal for jovem"], answer: 1, explanation: "Leituras precisam de contexto e avaliacao de campo ou veterinaria." }] },
+  { id: "cio", title: "Deteccao de cio orientada por dados", duration: "9 min", level: "Reproducao", summary: "Cruze balanceio, atividade e historico para priorizar observacoes.", content: ["No cio, muitas femeas apresentam aumento de atividade, deslocamento e interacoes. O balanceio medido pelo giroscopio e um sinal de apoio, nao uma confirmacao isolada.", "Cruze o alerta com observacao no curral, historico reprodutivo e avaliacao do veterinario. Assim a equipe prioriza as femeas certas e planeja melhor a janela fertil."], points: ["Identificar aumento de atividade", "Confirmar sinais no curral", "Planejar a janela fertil"], questions: [{ prompt: "Qual combinacao aumenta a confianca na triagem de cio?", options: ["Balanceio, atividade e observacao de campo", "Somente a temperatura", "Apenas o nome da raca"], answer: 0, explanation: "O melhor resultado vem da combinacao de sinais do sensor, historico e confirmacao no campo." }, { prompt: "O alerta do giroscopio e uma confirmacao de cio?", options: ["Sempre", "Nao, e um sinal para investigar", "Somente em animais sem lote"], answer: 1, explanation: "O sensor prioriza a observacao; a confirmacao depende do conjunto de sinais e da equipe." }, { prompt: "Qual e o ganho pratico da deteccao orientada por dados?", options: ["Reduzir a prioridade das observacoes", "Concentrar a equipe na janela mais provavel", "Eliminar o registro reprodutivo"], answer: 1, explanation: "A tecnologia ajuda a encontrar a melhor janela para observar e agir." }] },
+  { id: "sanidade", title: "Sanidade e alerta precoce", duration: "12 min", level: "Sanidade", summary: "Transforme alteracoes de comportamento em protocolos de cuidado.", content: ["Alerta precoce e perceber uma mudanca antes que o quadro fique grave. Temperatura, ruminação, atividade e comportamento devem ser lidos em conjunto e comparados ao basal.", "Classifique o alerta por urgencia: observe novamente, examine no curral ou acione o veterinario. Registre a providencia para que a equipe saiba o que ja foi feito."], points: ["Comparar com o basal do animal", "Classificar alerta e urgencia", "Acionar a equipe veterinaria"], questions: [{ prompt: "O que torna um alerta mais confiavel?", options: ["Uma tendencia coerente em varios sinais", "Um numero sem horario", "Um alerta sem animal identificado"], answer: 0, explanation: "Varios sinais coerentes, com horario e animal identificados, fortalecem a interpretacao." }, { prompt: "Qual e uma resposta adequada a um alerta?", options: ["Ignorar sempre", "Classificar a urgencia e conferir o animal", "Apagar o evento"], answer: 1, explanation: "O alerta deve gerar uma acao proporcional ao risco e ser documentado." }, { prompt: "Quando envolver o veterinario?", options: ["Quando houver risco, persistencia ou duvida clinica", "Somente depois de retirar o alerta", "Nunca"], answer: 0, explanation: "Persistencia, gravidade ou incerteza clinica exigem apoio profissional." }] },
+  { id: "quarentena", title: "Quarentena Digital", duration: "7 min", level: "Sanidade", summary: "Isole, acompanhe e documente animais que precisam de atencao.", content: ["A Quarentena Digital organiza o isolamento e o acompanhamento de um animal com risco sanitario. O registro deve conter motivo, horario, responsavel e evolucao.", "Liberar um animal exige criterio: sinais normalizados, avaliacao adequada e autorizacao da equipe responsavel. O historico evita que uma decisao importante fique apenas na memoria."], points: ["Registrar o motivo do isolamento", "Acompanhar a evolucao", "Liberar somente com criterio"], questions: [{ prompt: "O que deve acompanhar a entrada em quarentena?", options: ["Motivo, horario e responsavel", "Somente uma foto", "Nenhum registro"], answer: 0, explanation: "Esses dados criam rastreabilidade para a conduta sanitaria." }, { prompt: "Quando liberar o animal?", options: ["Assim que o alerta desaparecer uma vez", "Depois de criterios e avaliacao definidos", "Automaticamente ao fim do dia"], answer: 1, explanation: "A liberacao precisa de criterio e, quando necessario, avaliacao veterinaria." }, { prompt: "Por que acompanhar a evolucao?", options: ["Para confirmar resposta e decidir a proxima conduta", "Para esconder eventos", "Para alterar o identificador"], answer: 0, explanation: "A evolucao mostra se a conduta esta funcionando." }] },
+  { id: "mapa", title: "Mapa vivo e georreferenciamento", duration: "8 min", level: "Operacao", summary: "Use o territorio da fazenda para localizar animais e lotes.", content: ["O limite A-B-C-D representa o territorio operacional da fazenda. Cada animal recebe coordenadas e uma area, o que facilita planejar a ronda e localizar o lote correto.", "Mantenha os pontos do limite atualizados e confira se as coordenadas do animal estao dentro do poligono. O mapa ajuda a decidir onde ir, mas a confirmacao no campo continua importante."], points: ["Ler limites A-B-C-D", "Encontrar o animal por area", "Planejar a ronda de manejo"], questions: [{ prompt: "Para que servem os pontos A-B-C-D?", options: ["Definir o territorio da fazenda", "Medir a temperatura", "Cadastrar uma vacina"], answer: 0, explanation: "Os quatro pontos desenham o limite operacional usado pelo mapa." }, { prompt: "O que uma area do animal ajuda a planejar?", options: ["A ronda e a ordem de manejo", "A senha do usuario", "O valor do frete"], answer: 0, explanation: "A area aproxima a equipe do local onde o animal deve ser encontrado." }, { prompt: "O mapa substitui a verificacao no campo?", options: ["Sim, sempre", "Nao; ele orienta e deve ser confirmado no campo", "Somente no modo satelite"], answer: 1, explanation: "A coordenada orienta, mas o campo confirma a situacao real." }] },
+  { id: "lotes", title: "Lotes e manejo de precisao", duration: "11 min", level: "Operacao", summary: "Organize grupos por finalidade, fase e risco.", content: ["Um lote bom reune animais com necessidades parecidas, como matrizes, bezerras ou animais em recuperacao. Isso facilita o manejo, a nutricao e a leitura dos indicadores.", "Evite lotes grandes demais para esconder diferencas e pequenos demais para complicar a rotina. Revise o lote quando mudar a fase, o risco ou a finalidade do animal."], points: ["Definir lotes coerentes", "Filtrar o que exige acao", "Reduzir deslocamentos"], questions: [{ prompt: "Como formar um lote coerente?", options: ["Agrupar necessidades e objetivos parecidos", "Misturar todos sem criterio", "Usar apenas a cor do animal"], answer: 0, explanation: "A semelhanca de necessidade torna o manejo mais preciso." }, { prompt: "Quando revisar um lote?", options: ["Quando fase, risco ou finalidade mudarem", "Nunca", "A cada minuto"], answer: 0, explanation: "O lote deve acompanhar a realidade produtiva e sanitaria." }, { prompt: "Qual resultado esperado do manejo por lotes?", options: ["Mais deslocamento sem foco", "Rotina mais organizada e acao priorizada", "Menos registro"], answer: 1, explanation: "Lotes bem definidos reduzem deslocamentos e melhoram a priorizacao." }] },
+  { id: "rastreabilidade", title: "Rastreabilidade do rebanho", duration: "10 min", level: "Gestao", summary: "Mantenha um historico confiavel do animal do nascimento ao abate.", content: ["Rastreabilidade e conseguir responder quem e o animal, onde esta, o que aconteceu e qual foi a conduta. O identificador deve ser unico e os eventos precisam ter data, origem e responsavel.", "Um historico confiavel facilita auditorias, sanidade, reproducao e relatorios. Registros simples feitos no momento certo valem mais que reconstrucoes incompletas depois."], points: ["Padronizar identificadores", "Auditar mudancas", "Preparar relatorios"], questions: [{ prompt: "O que identifica um evento rastreavel?", options: ["Data, origem, animal e responsavel", "Somente uma opiniao", "Apenas o nome do lote"], answer: 0, explanation: "Esses campos permitem entender o que ocorreu e quem registrou." }, { prompt: "Por que o identificador deve ser unico?", options: ["Para evitar misturar historicos", "Para mudar todo dia", "Para eliminar a carteira vacinal"], answer: 0, explanation: "Identificador unico conecta todos os eventos ao animal correto." }, { prompt: "Quando registrar uma conduta?", options: ["No momento em que ela ocorre", "Somente no fim do ano", "Apenas se houver auditoria"], answer: 0, explanation: "O registro imediato reduz esquecimentos e melhora a confiabilidade." }] },
+  { id: "offline", title: "Operacao offline no campo", duration: "6 min", level: "Operacao", summary: "Continue registrando mesmo quando a internet desaparecer.", content: ["No modo offline, o aplicativo continua guardando registros no dispositivo. Isso permite trabalhar em areas sem sinal e sincronizar depois, sem depender de uma conexao constante.", "Ao voltar a rede, confira a fila pendente, sincronize e verifique se os registros apareceram no historico. Evite cadastrar o mesmo evento novamente apenas porque a tela demorou a atualizar."], points: ["Entender o modo offline", "Sincronizar com seguranca", "Conferir leituras pendentes"], questions: [{ prompt: "O que o modo offline permite?", options: ["Registrar sem internet e sincronizar depois", "Apagar todos os dados", "Trocar o identificador do animal"], answer: 0, explanation: "O armazenamento local permite continuar a operacao ate a rede voltar." }, { prompt: "O que conferir ao reconectar?", options: ["Fila pendente e historico sincronizado", "Somente a bateria do celular", "A cor do mapa"], answer: 0, explanation: "A conferencia evita perda ou duplicacao de registros." }, { prompt: "O que fazer se a tela demorar?", options: ["Cadastrar tudo novamente", "Aguardar e conferir a fila", "Apagar o aplicativo"], answer: 1, explanation: "Duplicar enquanto sincroniza pode criar eventos repetidos." }] },
+  { id: "lorawan", title: "Conectividade rural e LoRaWAN", duration: "9 min", level: "Tecnologia", summary: "Escolha conectividade para areas extensas e de baixa cobertura.", content: ["Bluetooth serve para a comunicacao de curta distancia entre celular e dispositivo. Wi-Fi atende uma area local. LoRaWAN usa baixo consumo e longo alcance entre sensores, gateways e a rede.", "O gateway deve ser instalado em ponto alto e com cobertura dos piquetes. Monitore bateria, sinal e zonas sem leitura antes de concluir que o animal esta parado."], points: ["Diferenciar BLE, Wi-Fi e LoRaWAN", "Posicionar gateways", "Monitorar sinal"], questions: [{ prompt: "Qual tecnologia tem longo alcance e baixo consumo?", options: ["LoRaWAN", "Bluetooth de curta distancia", "Cabo USB"], answer: 0, explanation: "LoRaWAN foi projetada para telemetria de baixo consumo em areas extensas." }, { prompt: "Onde posicionar um gateway rural?", options: ["Em ponto alto e com boa cobertura", "Dentro de uma caixa metalica fechada", "Somente no escritorio"], answer: 0, explanation: "Altura e visada ajudam a cobrir os piquetes." }, { prompt: "Um silencio de dados sempre significa animal parado?", options: ["Sim", "Nao; confira sinal, bateria e conectividade", "Somente no mapa satelite"], answer: 1, explanation: "Falhas de comunicacao podem parecer falta de movimento." }] },
+  { id: "indicadores", title: "Indicadores para decidir melhor", duration: "10 min", level: "Gestao", summary: "Converta dados do rebanho em indicadores de rotina.", content: ["Um indicador resume uma pergunta de manejo: qual a taxa de animais saudaveis, quantos alertas persistem ou como a ruminacao mudou. O indicador precisa de periodo, denominador e fonte.", "Observe tendencia, compare com a meta e defina uma acao. Um numero bonito que nao muda uma decisao e apenas informacao, nao gestao."], points: ["Acompanhar tendencia", "Definir meta de manejo", "Medir resultado"], questions: [{ prompt: "O que um bom indicador precisa informar?", options: ["Periodo, denominador e fonte", "Somente uma cor", "Apenas o maior numero"], answer: 0, explanation: "Sem contexto, o numero nao pode ser comparado nem auditado." }, { prompt: "Como usar uma tendencia?", options: ["Comparar com meta e definir acao", "Ignorar todos os dias anteriores", "Mudar a meta para esconder o resultado"], answer: 0, explanation: "A tendencia ganha valor quando orienta uma acao concreta." }, { prompt: "Quando um numero ajuda a gestao?", options: ["Quando muda uma decisao ou rotina", "Quando fica bonito no painel", "Quando nao tem fonte"], answer: 0, explanation: "Indicadores existem para apoiar decisoes melhores." }] },
+  { id: "plano", title: "Plano de implantacao em 30 dias", duration: "14 min", level: "Avancado", summary: "Leve a Pecuaria 4.0 da apresentacao para a operacao.", content: ["Uma implantacao segura comeca pequena: escolha um lote piloto, defina uma pergunta de negocio e treine quem vai usar o aplicativo. Registre o ponto de partida antes de instalar tudo.", "Na segunda etapa, revise a qualidade dos dados e ajuste o manejo. Ao final, compare resultados, documente aprendizados e so entao amplie para outros lotes."], points: ["Escolher o primeiro lote", "Treinar a equipe", "Revisar resultados semanalmente"], questions: [{ prompt: "Qual e uma boa primeira etapa?", options: ["Escolher lote piloto e pergunta de negocio", "Comprar tudo sem objetivo", "Treinar somente depois de um ano"], answer: 0, explanation: "Um piloto com objetivo claro reduz risco e facilita medir resultado." }, { prompt: "Por que treinar a equipe?", options: ["Para padronizar registro e resposta", "Para impedir o uso do mapa", "Para apagar alertas"], answer: 0, explanation: "Tecnologia so gera resultado quando a equipe usa o mesmo processo." }, { prompt: "Quando ampliar a implantacao?", options: ["Depois de revisar dados e resultados do piloto", "Antes de testar", "Sem registrar aprendizados"], answer: 0, explanation: "A revisao do piloto mostra o que deve ser mantido ou ajustado." }] }
 ];
 const VACCINE_CATALOG = [
   { id: "brucelose", name: "Brucelose", interval: 365, protocol: "Dose anual" },
@@ -78,6 +78,7 @@ const state = {
   bleBuffer: "",
   bleAnimalId: null,
   educationCompleted: [],
+  educationScores: {},
   ...loadSavedState()
 };
 
@@ -162,6 +163,9 @@ function bindEvents() {
 
     const completeLessonButton = event.target.closest("[data-complete-lesson]");
     if (completeLessonButton) completeEducationLesson(completeLessonButton.dataset.completeLesson);
+
+    const submitLessonButton = event.target.closest("[data-submit-lesson]");
+    if (submitLessonButton) submitEducationQuiz(submitLessonButton.dataset.submitLesson);
 
     const orderButton = event.target.closest("[data-finalize-order]");
     if (orderButton) finalizeOrder();
@@ -332,6 +336,7 @@ async function hydrateFromDatabase() {
     if (item.key === "selectedFarm") state.selectedFarm = item.value;
     if (item.key === "onboardingSeen") state.onboardingSeen = item.value;
     if (item.key === "educationCompleted") state.educationCompleted = item.value || [];
+    if (item.key === "educationScores") state.educationScores = item.value || {};
   });
 
   normalizeState();
@@ -340,6 +345,7 @@ async function hydrateFromDatabase() {
 
 function normalizeState() {
   state.educationCompleted = Array.isArray(state.educationCompleted) ? state.educationCompleted : [];
+  state.educationScores = state.educationScores && typeof state.educationScores === "object" ? state.educationScores : {};
   appData.farm.id ||= "default";
   appData.farm.updatedAt ||= Date.now();
   appData.farm.boundary = normalizeBoundary(appData.farm.boundary);
@@ -386,7 +392,8 @@ async function persist() {
     offline: state.offline,
     selectedFarm: state.selectedFarm,
     onboardingSeen: state.onboardingSeen,
-    educationCompleted: state.educationCompleted
+    educationCompleted: state.educationCompleted,
+    educationScores: state.educationScores
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 
@@ -405,7 +412,8 @@ async function persist() {
         { key: "offline", value: state.offline },
         { key: "selectedFarm", value: state.selectedFarm },
         { key: "onboardingSeen", value: state.onboardingSeen },
-        { key: "educationCompleted", value: state.educationCompleted }
+        { key: "educationCompleted", value: state.educationCompleted },
+        { key: "educationScores", value: state.educationScores }
       ])
     ]);
   } catch {
@@ -2034,13 +2042,14 @@ function educationPanel() {
       <strong>${progress}%</strong>
     </section>
     <div class="course-progress"><span style="width:${progress}%"></span></div>
-    <div class="course-meta"><span>${completed} de ${EDUCATION_LESSONS.length} aulas concluidas</span><span>Certificado VitalBov</span></div>
+    <div class="course-meta"><span>${completed} de ${EDUCATION_LESSONS.length} aulas concluidas</span><span>${Object.keys(state.educationScores).length} avaliacoes feitas</span></div>
     <div class="lesson-list">
       ${EDUCATION_LESSONS.map((lesson, index) => {
         const done = state.educationCompleted.includes(lesson.id);
+        const score = state.educationScores[lesson.id];
         return `<article class="lesson-card ${done ? "is-complete" : ""}">
           <div class="lesson-number">${done ? "OK" : String(index + 1).padStart(2, "0")}</div>
-          <div class="lesson-content"><div class="lesson-tags"><span>${lesson.level}</span><small>${lesson.duration}</small></div><h3>${lesson.title}</h3><p>${lesson.summary}</p></div>
+          <div class="lesson-content"><div class="lesson-tags"><span>${lesson.level}</span><small>${lesson.duration}</small></div><h3>${lesson.title}</h3><p>${lesson.summary}</p>${score ? `<small class="lesson-score">Ultima nota: ${score}/${lesson.questions.length}</small>` : ""}</div>
           <button class="btn ${done ? "btn-secondary" : "btn-primary"}" data-open-lesson="${lesson.id}">${done ? "Revisar" : "Abrir aula"}</button>
         </article>`;
       }).join("")}
@@ -2056,19 +2065,50 @@ function openEducationLesson(id) {
     <div class="sheet-header"><h2>${lesson.title}</h2><button class="close-btn" data-close-modal aria-label="Fechar">x</button></div>
     <div class="lesson-detail-head"><span class="status-badge healthy">${lesson.level}</span><span>${lesson.duration}</span></div>
     <p class="lesson-lead">${lesson.summary}</p>
+    <div class="lesson-content-detail">${lesson.content.map((paragraph) => `<p>${paragraph}</p>`).join("")}</div>
     <h3>Ao concluir, você saberá:</h3>
     <div class="lesson-checklist">${lesson.points.map((point) => `<div><span>+</span>${point}</div>`).join("")}</div>
-    <button class="btn ${done ? "btn-secondary" : "btn-primary"}" style="width:100%;margin-top:16px" data-complete-lesson="${lesson.id}">${done ? "Aula concluida" : "Marcar aula como concluida"}</button>
+    <h3 class="quiz-title">Avaliacao da aula</h3>
+    <p class="quiz-help">Responda as ${lesson.questions.length} questoes. Voce precisa acertar pelo menos 2 para concluir.</p>
+    <form class="lesson-quiz" id="lessonQuizForm">
+      ${lesson.questions.map((question, questionIndex) => `<fieldset class="quiz-question"><legend>${questionIndex + 1}. ${question.prompt}</legend>${question.options.map((option, optionIndex) => `<label class="quiz-option"><input type="radio" name="lessonQuestion${questionIndex}" value="${optionIndex}"><span>${option}</span></label>`).join("")}</fieldset>`).join("")}
+      <div id="lessonQuizResult" class="quiz-result" aria-live="polite"></div>
+      <button class="btn ${done ? "btn-secondary" : "btn-primary"}" style="width:100%;margin-top:16px" data-submit-lesson="${lesson.id}">${done ? "Refazer avaliacao" : "Corrigir avaliacao"}</button>
+    </form>
   `);
 }
 
-function completeEducationLesson(id) {
-  if (!state.educationCompleted.includes(id)) {
-    state.educationCompleted.push(id);
-    addEvent("education.complete", `Aula ${id} concluida na trilha Pecuaria 4.0.`);
-    addNotice("E", "Aula concluida", "Seu progresso em Pecuaria 4.0 foi salvo.", "Agora");
+function submitEducationQuiz(id) {
+  const lesson = EDUCATION_LESSONS.find((item) => item.id === id);
+  if (!lesson) return;
+  const answers = lesson.questions.map((question, index) => document.querySelector(`input[name="lessonQuestion${index}"]:checked`));
+  const result = $("#lessonQuizResult");
+  if (answers.some((answer) => !answer)) {
+    if (result) result.innerHTML = `<strong>Responda todas as questoes.</strong><span>Assim voce recebe a correcao completa e a explicacao de cada resposta.</span>`;
+    return;
+  }
+  const score = answers.reduce((total, answer, index) => total + (Number(answer.value) === lesson.questions[index].answer ? 1 : 0), 0);
+  state.educationScores[id] = score;
+  const passed = score >= 2;
+  if (result) {
+    result.className = `quiz-result ${passed ? "is-pass" : "is-retry"}`;
+    result.innerHTML = `<strong>${passed ? "Aprovado" : "Revise o conteudo e tente novamente"}: ${score}/${lesson.questions.length}</strong>${lesson.questions.map((question, index) => `<span>${Number(answers[index].value) === question.answer ? "Certo" : "Reveja"}: ${question.explanation}</span>`).join("")}`;
+  }
+  if (passed) {
+    completeEducationLesson(id, score);
+  } else {
     persist();
   }
+}
+
+function completeEducationLesson(id, score = state.educationScores[id]) {
+  if (!state.educationCompleted.includes(id)) {
+    state.educationCompleted.push(id);
+  }
+  state.educationScores[id] = score;
+  addEvent("education.complete", `Aula ${id} concluida com nota ${score}/${EDUCATION_LESSONS.find((item) => item.id === id)?.questions.length || 3}.`);
+  addNotice("E", "Aula concluida", "Seu progresso e sua avaliacao foram salvos.", "Agora");
+  persist();
   closeModal();
   openInfoPanel("education");
 }

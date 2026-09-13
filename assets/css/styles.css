@@ -1478,13 +1478,28 @@ body.dark .map-legend {
 .lesson-card.is-complete .lesson-number { background: var(--lime); color: var(--ink); }
 .lesson-content h3 { margin: 3px 0; font-size: .96rem; }
 .lesson-content p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.35; }
+.lesson-score { display: block; margin-top: 5px; color: var(--green-dark); font-weight: 900; }
 .lesson-tags { display: flex; gap: 8px; align-items: center; color: var(--green-dark); font-size: .72rem; font-weight: 900; }
 .lesson-tags small { color: var(--muted); font-weight: 800; }
 .lesson-detail-head { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .82rem; font-weight: 800; }
 .lesson-lead { color: var(--muted); line-height: 1.55; }
+.lesson-content-detail { display: grid; gap: 8px; padding: 14px; margin: 12px 0 16px; border-left: 4px solid var(--green); border-radius: var(--radius); background: var(--paper); }
+.lesson-content-detail p { margin: 0; color: var(--ink); line-height: 1.55; }
 .lesson-checklist { display: grid; gap: 8px; }
 .lesson-checklist div { display: flex; gap: 8px; align-items: center; padding: 10px; border-radius: var(--radius); background: var(--paper); color: var(--ink); font-weight: 700; }
 .lesson-checklist span { color: var(--green); font-size: 1.2rem; font-weight: 900; }
+.quiz-title { margin: 18px 0 4px; }
+.quiz-help { margin: 0 0 10px; color: var(--muted); font-size: .82rem; }
+.lesson-quiz { display: grid; gap: 12px; }
+.quiz-question { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+.quiz-question legend { max-width: 100%; padding: 0 4px; color: var(--ink); font-weight: 900; line-height: 1.4; }
+.quiz-option { display: flex; gap: 8px; align-items: flex-start; padding: 9px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--white); color: var(--ink); font-size: .84rem; line-height: 1.35; cursor: pointer; }
+.quiz-option:has(input:checked) { border-color: var(--green); background: #eef5e0; }
+.quiz-option input { margin-top: 3px; accent-color: var(--green); }
+.quiz-result { display: grid; gap: 6px; padding: 11px; border-radius: var(--radius); background: #fff8f2; color: var(--ink); font-size: .8rem; line-height: 1.4; }
+.quiz-result.is-pass { background: #eef5e0; border: 1px solid var(--lime); }
+.quiz-result.is-retry { border: 1px solid #d99b7e; }
+.quiz-result span { color: var(--muted); }
 
 @media (min-width: 760px) {
   .main-app {
