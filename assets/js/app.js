@@ -62,6 +62,11 @@ const state = {
   farmBoundaryLayer: null,
   mapReady: false,
   leafletLoading: false,
+  farmEditorMap: null,
+  farmEditorMarkers: null,
+  farmEditorPolygon: null,
+  farmEditorReady: false,
+  farmEditorActivePoint: "A",
   telemetryTimer: null,
   chipRealtimeTimer: null,
   activeChipAnimalId: null,
@@ -160,6 +165,12 @@ function bindEvents() {
 
     const saveProfileButton = event.target.closest("[data-save-profile]");
     if (saveProfileButton) saveProfile();
+
+    const boundaryPointButton = event.target.closest("[data-select-boundary-point]");
+    if (boundaryPointButton) selectFarmEditorPoint(boundaryPointButton.dataset.selectBoundaryPoint);
+
+    const fitBoundaryButton = event.target.closest("[data-fit-farm-editor]");
+    if (fitBoundaryButton) fitFarmEditorMap();
 
     const enablePushButton = event.target.closest("[data-enable-push]");
     if (enablePushButton) enablePushNotifications();
@@ -1671,6 +1682,7 @@ function openInfoPanel(panel) {
     education: educationPanel()
   };
   openModal(panels[panel] || panels.notifications);
+  if (panel === "registration") initFarmBoundaryEditor();
 }
 
 function notificationPanel() {
@@ -1701,7 +1713,17 @@ function registrationPanel() {
       ${field("Tamanho do rebanho", `${appData.animals.length} animais monitorados`, "text", "profileHerdInput")}
     </div>
     <div class="farm-boundary-editor">
-      <div class="boundary-heading"><strong>Quadrado de localização da fazenda</strong><span>Use latitude e longitude no formato: -19.526, -40.646</span></div>
+      <div class="boundary-heading"><strong>Limite da fazenda no mapa</strong><span>Selecione um ponto A, B, C ou D e clique no mapa. Tambem e possivel arrastar os marcadores.</span></div>
+      <div class="farm-editor-toolbar">
+        <span id="farmEditorHint">Ponto A selecionado. Clique no mapa para posicionar.</span>
+        <button class="btn btn-secondary" data-fit-farm-editor>Centralizar mapa</button>
+      </div>
+      <div id="farmBoundaryMap" class="farm-boundary-map" role="application" aria-label="Editor do limite da fazenda"></div>
+      <div id="farmBoundaryFallback" class="farm-boundary-fallback" hidden></div>
+      <div class="farm-point-selector" aria-label="Selecionar ponto do limite">
+        ${["A", "B", "C", "D"].map((point) => `<button class="farm-point-button ${point === "A" ? "active" : ""}" data-select-boundary-point="${point}"><strong>${point}</strong><span id="farmPointSummary${point}">${formatCoordinatePair(appData.farm.boundary[point])}</span></button>`).join("")}
+      </div>
+      <div class="boundary-heading"><strong>Coordenadas precisas</strong><span>Edite os valores abaixo quando precisar de precisao GPS.</span></div>
       ${field("Ponto A - noroeste", formatCoordinatePair(appData.farm.boundary.A), "text", "farmPointA")}
       ${field("Ponto B - nordeste", formatCoordinatePair(appData.farm.boundary.B), "text", "farmPointB")}
       ${field("Ponto C - sudeste", formatCoordinatePair(appData.farm.boundary.C), "text", "farmPointC")}
@@ -1709,6 +1731,148 @@ function registrationPanel() {
     </div>
     <button class="btn btn-primary" style="width:100%;margin-top:14px" data-save-profile>Salvar dados</button>
   `;
+}
+
+function initFarmBoundaryEditor() {
+  const mapElement = $("#farmBoundaryMap");
+  if (!mapElement) return;
+  ["A", "B", "C", "D"].forEach((point) => {
+    $("#farmPoint" + point)?.addEventListener("change", () => {
+      appData.farm.boundary[point] = parseCoordinatePair($("#farmPoint" + point).value, appData.farm.boundary[point]);
+      refreshFarmEditor();
+    });
+  });
+
+  if (!window.L) {
+    renderFarmBoundaryFallback();
+    loadLeafletAssets().then((loaded) => {
+      if (loaded && $("#farmBoundaryMap")) createFarmBoundaryMap();
+    });
+    return;
+  }
+  createFarmBoundaryMap();
+}
+
+function createFarmBoundaryMap() {
+  const mapElement = $("#farmBoundaryMap");
+  if (!mapElement) return;
+  mapElement.hidden = false;
+  $("#farmBoundaryFallback")?.setAttribute("hidden", "");
+  if (state.farmEditorMap) {
+    state.farmEditorMap.invalidateSize();
+    refreshFarmEditor();
+    return;
+  }
+
+  const layers = {
+    Mapa: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }),
+    Satelite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "Tiles &copy; Esri"
+    })
+  };
+  state.farmEditorMap = L.map(mapElement, { zoomControl: true }).setView(appData.farm.center, 15);
+  layers.Mapa.addTo(state.farmEditorMap);
+  L.control.layers(layers).addTo(state.farmEditorMap);
+  state.farmEditorPolygon = L.polygon(farmBoundaryPoints(), {
+    color: "#bc3f32",
+    weight: 3,
+    fillColor: "#85b024",
+    fillOpacity: 0.2,
+    dashArray: "8 5"
+  }).addTo(state.farmEditorMap);
+  state.farmEditorMarkers = L.layerGroup().addTo(state.farmEditorMap);
+  state.farmEditorMap.on("click", (event) => setFarmEditorPoint(state.farmEditorActivePoint, [event.latlng.lat, event.latlng.lng]));
+  state.farmEditorReady = true;
+  refreshFarmEditor();
+  fitFarmEditorMap();
+  setTimeout(() => state.farmEditorMap?.invalidateSize(), 80);
+}
+
+function boundaryMarkerIcon(label) {
+  return L.divIcon({
+    className: "farm-boundary-marker",
+    html: `<span>${label}</span>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+  });
+}
+
+function refreshFarmEditor() {
+  const boundary = normalizeBoundary(appData.farm.boundary);
+  appData.farm.boundary = boundary;
+  ["A", "B", "C", "D"].forEach((point) => {
+    const value = formatCoordinatePair(boundary[point]);
+    const input = $("#farmPoint" + point);
+    const summary = $("#farmPointSummary" + point);
+    if (input && document.activeElement !== input) input.value = value;
+    if (summary) summary.textContent = value;
+  });
+  if (state.farmEditorMap && state.farmEditorPolygon && state.farmEditorMarkers) {
+    state.farmEditorPolygon.setLatLngs(farmBoundaryPoints());
+    state.farmEditorMarkers.clearLayers();
+    ["A", "B", "C", "D"].forEach((point) => {
+      const marker = L.marker(boundary[point], { draggable: true, icon: boundaryMarkerIcon(point) });
+      marker.bindTooltip(`Ponto ${point}`, { direction: "top", offset: [0, -12] });
+      marker.on("click", () => selectFarmEditorPoint(point));
+      marker.on("dragend", (event) => {
+        const latLng = event.target.getLatLng();
+        setFarmEditorPoint(point, [latLng.lat, latLng.lng]);
+      });
+      marker.addTo(state.farmEditorMarkers);
+    });
+  } else {
+    renderFarmBoundaryFallback();
+  }
+  updateFarmEditorHint();
+}
+
+function setFarmEditorPoint(point, coords) {
+  if (!point || !["A", "B", "C", "D"].includes(point)) return;
+  appData.farm.boundary[point] = [Number(coords[0].toFixed(6)), Number(coords[1].toFixed(6))];
+  state.farmEditorActivePoint = point;
+  refreshFarmEditor();
+}
+
+function selectFarmEditorPoint(point) {
+  state.farmEditorActivePoint = point;
+  $$("[data-select-boundary-point]").forEach((button) => button.classList.toggle("active", button.dataset.selectBoundaryPoint === point));
+  updateFarmEditorHint();
+}
+
+function updateFarmEditorHint() {
+  const hint = $("#farmEditorHint");
+  if (hint) hint.textContent = `Ponto ${state.farmEditorActivePoint} selecionado. Clique no mapa ou arraste o marcador.`;
+}
+
+function fitFarmEditorMap() {
+  if (!state.farmEditorMap) return;
+  state.farmEditorMap.fitBounds(farmBoundaryPoints(), { padding: [28, 28], maxZoom: 17 });
+}
+
+function renderFarmBoundaryFallback() {
+  const fallback = $("#farmBoundaryFallback");
+  const map = $("#farmBoundaryMap");
+  if (!fallback || !map) return;
+  map.hidden = true;
+  fallback.hidden = false;
+  const boundary = normalizeBoundary(appData.farm.boundary);
+  const corners = Object.entries(boundary).map(([label, coords]) => {
+    const position = coordsToMapPosition(coords);
+    return `<button class="farm-fallback-point ${label === state.farmEditorActivePoint ? "active" : ""}" style="left:${position.left}%;top:${position.top}%" data-select-boundary-point="${label}"><strong>${label}</strong><small>${formatCoordinatePair(coords)}</small></button>`;
+  }).join("");
+  fallback.innerHTML = `<div class="map-grid"></div><div class="map-boundary-shape"></div>${corners}<span class="farm-fallback-note">Mapa offline: selecione um ponto para editar as coordenadas.</span>`;
+  fallback.onclick = (event) => {
+    if (event.target.closest("[data-select-boundary-point]")) return;
+    const rect = fallback.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    const bounds = farmBounds();
+    setFarmEditorPoint(state.farmEditorActivePoint, [bounds.maxLat - y * (bounds.maxLat - bounds.minLat), bounds.minLng + x * (bounds.maxLng - bounds.minLng)]);
+  };
 }
 
 function devicesPanel() {
@@ -2151,6 +2315,13 @@ function openModal(content) {
 
 function closeModal() {
   stopChipRealtime();
+  if (state.farmEditorMap) {
+    state.farmEditorMap.remove();
+    state.farmEditorMap = null;
+    state.farmEditorMarkers = null;
+    state.farmEditorPolygon = null;
+    state.farmEditorReady = false;
+  }
   $("#modalRoot").classList.remove("active");
   $("#modalRoot").innerHTML = "";
 }
