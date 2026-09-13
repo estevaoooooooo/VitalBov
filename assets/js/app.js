@@ -335,10 +335,7 @@ async function hydrateFromDatabase() {
   });
 
   normalizeState();
-
-  if (!farms.length || !animals.length) {
-    await persist();
-  }
+  await persist();
 }
 
 function normalizeState() {
@@ -359,6 +356,7 @@ function normalizeState() {
       updatedAt: animal.updatedAt || Date.now()
     };
   });
+  fitAnimalsToFarm();
   appData.notices = appData.notices.map((notice) => ({
     ...notice,
     id: notice.id || cryptoRandomId("notice"),
@@ -2454,17 +2452,67 @@ function clampToFarm(coords) {
   const fallback = boundaryCenter(appData.farm.boundary);
   const lat = Number(coords?.[0]);
   const lng = Number(coords?.[1]);
-  return [
+  const clamped = [
     Number(Math.min(bounds.maxLat, Math.max(bounds.minLat, Number.isFinite(lat) ? lat : fallback[0])).toFixed(6)),
     Number(Math.min(bounds.maxLng, Math.max(bounds.minLng, Number.isFinite(lng) ? lng : fallback[1])).toFixed(6))
   ];
+  return pointInsideFarm(clamped) ? clamped : randomInsideFarm(zoneForCoords(clamped));
 }
 
 function fitAnimalsToFarm() {
-  appData.animals = appData.animals.map((animal) => {
-    const coords = clampToFarm(animal.coords);
+  const occupied = new Set();
+  const total = appData.animals.length;
+  appData.animals = appData.animals.map((animal, index) => {
+    const original = animal.coords;
+    let coords = clampToFarm(original);
+    const key = formatCoordinatePair(coords);
+    if (!pointInsideFarm(original) || occupied.has(key)) {
+      coords = farmGridPoint(index, total);
+      let attempts = 0;
+      while (occupied.has(formatCoordinatePair(coords)) && attempts < 20) {
+        coords = randomInsideFarm(["A", "B", "C", "D"][index % 4]);
+        attempts += 1;
+      }
+    }
+    occupied.add(formatCoordinatePair(coords));
     return { ...animal, coords, zone: zoneForCoords(coords) };
   });
+}
+
+function farmGridPoint(index, total) {
+  const bounds = farmBounds();
+  const columns = Math.min(4, Math.max(1, Math.ceil(Math.sqrt(total || 1))));
+  const rows = Math.max(1, Math.ceil((total || 1) / columns));
+  const column = index % columns;
+  const row = Math.floor(index / columns);
+  const lngRatio = (column + 1) / (columns + 1);
+  const latRatio = (row + 1) / (rows + 1);
+  const candidate = [
+    bounds.maxLat - (bounds.maxLat - bounds.minLat) * latRatio,
+    bounds.minLng + (bounds.maxLng - bounds.minLng) * lngRatio
+  ];
+  return pointInsideFarm(candidate) ? candidate.map((value) => Number(value.toFixed(6))) : randomInsideFarm(["A", "B", "C", "D"][index % 4]);
+}
+
+function pointInsideFarm(coords) {
+  const lat = Number(coords?.[0]);
+  const lng = Number(coords?.[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  const points = farmBoundaryPoints();
+  let inside = false;
+  for (let index = 0, previous = points.length - 1; index < points.length; previous = index++) {
+    const current = points[index];
+    const last = points[previous];
+    const intersects = ((current[1] > lng) !== (last[1] > lng)) && (lat < (last[0] - current[0]) * (lng - current[1]) / (last[1] - current[1]) + current[0]);
+    if (intersects) inside = !inside;
+  }
+  return inside || points.some((point, index) => pointOnSegment(coords, point, points[(index + 1) % points.length]));
+}
+
+function pointOnSegment(point, start, end) {
+  const cross = (point[0] - start[0]) * (end[1] - start[1]) - (point[1] - start[1]) * (end[0] - start[0]);
+  if (Math.abs(cross) > 0.000001) return false;
+  return point[0] >= Math.min(start[0], end[0]) && point[0] <= Math.max(start[0], end[0]) && point[1] >= Math.min(start[1], end[1]) && point[1] <= Math.max(start[1], end[1]);
 }
 
 function zoneForCoords(coords) {
@@ -2479,12 +2527,16 @@ function zoneForCoords(coords) {
 
 function randomInsideFarm(zone = "C") {
   const bounds = farmBounds();
-  const vertical = zone === "A" || zone === "B" ? 0.72 + Math.random() * 0.22 : 0.08 + Math.random() * 0.22;
-  const horizontal = zone === "A" || zone === "D" ? 0.08 + Math.random() * 0.22 : 0.72 + Math.random() * 0.22;
-  return [
-    Number((bounds.minLat + (bounds.maxLat - bounds.minLat) * vertical).toFixed(6)),
-    Number((bounds.minLng + (bounds.maxLng - bounds.minLng) * horizontal).toFixed(6))
-  ];
+  for (let attempt = 0; attempt < 80; attempt += 1) {
+    const vertical = zone === "A" || zone === "B" ? 0.72 + Math.random() * 0.22 : 0.08 + Math.random() * 0.22;
+    const horizontal = zone === "A" || zone === "D" ? 0.08 + Math.random() * 0.22 : 0.72 + Math.random() * 0.22;
+    const candidate = [
+      Number((bounds.minLat + (bounds.maxLat - bounds.minLat) * vertical).toFixed(6)),
+      Number((bounds.minLng + (bounds.maxLng - bounds.minLng) * horizontal).toFixed(6))
+    ];
+    if (pointInsideFarm(candidate)) return candidate;
+  }
+  return boundaryCenter(appData.farm.boundary);
 }
 
 function coordsToMapPosition(coords) {
