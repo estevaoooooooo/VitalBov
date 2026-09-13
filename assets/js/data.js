@@ -199,7 +199,7 @@ window.VITALBOV_DATA = {
     { icon: "R", title: "Relatorio pronto", text: "Saude do rebanho - maio disponivel para PDF.", time: "3 h" }
   ],
   products: [
-    { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria", image: "assets/img/product-ear-tag.svg" },
+    { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria", image: "assets/img/product-smart-ear-tag.jpeg" },
     { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes", image: "assets/img/product-gateway.svg" },
     { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario", image: "assets/img/product-vaccine.svg" },
     { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento", image: "assets/img/product-vaccine.svg" },
