@@ -200,17 +200,17 @@ window.VITALBOV_DATA = {
   ],
   products: [
     { id: "p1", name: "Smart Ear Tag VitalBov", category: "Dispositivos", price: 189.9, recommended: "Reposicao para animais sem telemetria", image: "assets/img/product-smart-ear-tag.jpeg" },
-    { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes", image: "assets/img/product-gateway-rural.svg" },
-    { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario", image: "assets/img/product-brucelose-kit.svg" },
-    { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento", image: "assets/img/product-vaccine-herd.svg" },
-    { id: "p5", name: "Suplemento Mineral Premium", category: "Nutricao", price: 148.7, recommended: "Suporte a matrizes em lactacao", image: "assets/img/product-mineral-premium.svg" },
-    { id: "p6", name: "Aplicador RFID Pro", category: "Manejo", price: 419, recommended: "Agiliza cadastro em lote", image: "assets/img/product-rfid-applier.svg" },
-    { id: "p7", name: "Assinatura Vet 24h", category: "Servicos", price: 89.9, recommended: "Chat e agendamento prioritario", image: "assets/img/product-vet-subscription.svg" },
-    { id: "p8", name: "Relatorio Exportacao Plus", category: "Servicos", price: 199, recommended: "Rastreabilidade para certificacao", image: "assets/img/product-export-report.svg" },
-    { id: "p9", name: "Kit Coleta e Higiene", category: "Sanidade", price: 74.9, recommended: "Rotina de coleta sem contaminacao", image: "assets/img/product-hygiene-kit.svg" },
-    { id: "p10", name: "Suplemento para Bezerros", category: "Nutricao", price: 119.9, recommended: "Apoio ao desenvolvimento dos bezerros", image: "assets/img/product-calf-supplement.svg" },
-    { id: "p11", name: "Leitor RFID de Curral", category: "Manejo", price: 679, recommended: "Leitura rapida no manejo", image: "assets/img/product-rfid-reader.svg" },
-    { id: "p12", name: "Consulta Veterinaria Avulsa", category: "Servicos", price: 149.9, recommended: "Orientacao remota com especialista", image: "assets/img/product-vet-consultation.svg" }
+    { id: "p2", name: "Gateway LoRaWAN Rural", category: "Dispositivos", price: 1290, recommended: "Amplia cobertura em piquetes distantes", image: "assets/img/product-gateway-rural.jpg" },
+    { id: "p3", name: "Kit Brucelose Triagem", category: "Sanidade", price: 239.5, recommended: "Recomendado por alerta sanitario", image: "assets/img/product-brucelose-kit.jpg" },
+    { id: "p4", name: "Vacina Rebanho 50 doses", category: "Vacinas", price: 312, recommended: "Carteira digital proxima do vencimento", image: "assets/img/product-vaccine-herd.jpg" },
+    { id: "p5", name: "Suplemento Mineral Premium", category: "Nutricao", price: 148.7, recommended: "Suporte a matrizes em lactacao", image: "assets/img/product-mineral-premium.jpg" },
+    { id: "p6", name: "Aplicador RFID Pro", category: "Manejo", price: 419, recommended: "Agiliza cadastro em lote", image: "assets/img/product-rfid-applier.jpg" },
+    { id: "p7", name: "Assinatura Vet 24h", category: "Servicos", price: 89.9, recommended: "Chat e agendamento prioritario", image: "assets/img/product-vet-subscription.jpg" },
+    { id: "p8", name: "Relatorio Exportacao Plus", category: "Servicos", price: 199, recommended: "Rastreabilidade para certificacao", image: "assets/img/product-export-report.jpg" },
+    { id: "p9", name: "Kit Coleta e Higiene", category: "Sanidade", price: 74.9, recommended: "Rotina de coleta sem contaminacao", image: "assets/img/product-hygiene-kit.png" },
+    { id: "p10", name: "Suplemento para Bezerros", category: "Nutricao", price: 119.9, recommended: "Apoio ao desenvolvimento dos bezerros", image: "assets/img/product-calf-supplement.jpg" },
+    { id: "p11", name: "Leitor RFID de Curral", category: "Manejo", price: 679, recommended: "Leitura rapida no manejo", image: "assets/img/product-rfid-reader.jpg" },
+    { id: "p12", name: "Consulta Veterinaria Avulsa", category: "Servicos", price: 149.9, recommended: "Orientacao remota com especialista", image: "assets/img/product-vet-consultation.jpg" }
   ],
   chartData: {
     rumination: { label: "Ruminacao media (min)", values: [425, 438, 431, 454, 448, 466, 452], color: "#577627" },

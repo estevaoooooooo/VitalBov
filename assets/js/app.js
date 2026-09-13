@@ -679,17 +679,13 @@ function updateMapMarkers() {
   const animals = getFilteredAnimals();
   state.markersLayer.clearLayers();
   animals.forEach((animal) => {
-    const marker = L.marker(animal.coords, { icon: markerIcon(animal.status), draggable: true })
+    const marker = L.marker(animal.coords, { icon: markerIcon(animal.status), draggable: false })
       .bindPopup(`
         <strong>${animal.name} - ${animal.id}</strong><br>
         ${animal.statusLabel} | ${animal.temp} C<br>
         ${animal.lot}<br>
         <button class="leaflet-popup-button" data-open-animal="${animal.id}">Ver detalhes</button>
       `);
-    marker.on("dragend", (event) => {
-      const latLng = event.target.getLatLng();
-      moveAnimalOnMap(animal.id, [latLng.lat, latLng.lng]);
-    });
     marker.addTo(state.markersLayer);
   });
   if (animals.length && !state.mapHasInitialFit && !state.mapUserMoved) {
