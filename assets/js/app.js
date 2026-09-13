@@ -60,6 +60,9 @@ const state = {
   map: null,
   markersLayer: null,
   farmBoundaryLayer: null,
+  trackingBaseLayers: null,
+  mapUserMoved: false,
+  mapHasInitialFit: false,
   mapReady: false,
   leafletLoading: false,
   farmEditorMap: null,
@@ -595,10 +598,21 @@ function initLeafletMap() {
       attributionControl: true
     }).setView(appData.farm.center, 14);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "&copy; OpenStreetMap"
-    }).addTo(state.map);
+    state.trackingBaseLayers = {
+      Mapa: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }),
+      Satelite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 19,
+        attribution: "Tiles &copy; Esri"
+      })
+    };
+    state.trackingBaseLayers.Mapa.addTo(state.map);
+    L.control.layers(state.trackingBaseLayers, null, { position: "topright" }).addTo(state.map);
+    state.map.on("dragstart zoomstart", () => {
+      if (state.mapHasInitialFit) state.mapUserMoved = true;
+    });
 
     state.markersLayer = L.layerGroup().addTo(state.map);
     state.farmBoundaryLayer = L.polygon(farmBoundaryPoints(), {
@@ -659,18 +673,35 @@ function updateMapMarkers() {
   const animals = getFilteredAnimals();
   state.markersLayer.clearLayers();
   animals.forEach((animal) => {
-    const marker = L.marker(animal.coords, { icon: markerIcon(animal.status) })
+    const marker = L.marker(animal.coords, { icon: markerIcon(animal.status), draggable: true })
       .bindPopup(`
         <strong>${animal.name} - ${animal.id}</strong><br>
         ${animal.statusLabel} | ${animal.temp} C<br>
         ${animal.lot}<br>
         <button class="leaflet-popup-button" data-open-animal="${animal.id}">Ver detalhes</button>
       `);
+    marker.on("dragend", (event) => {
+      const latLng = event.target.getLatLng();
+      moveAnimalOnMap(animal.id, [latLng.lat, latLng.lng]);
+    });
     marker.addTo(state.markersLayer);
   });
-  if (animals.length) {
+  if (animals.length && !state.mapHasInitialFit && !state.mapUserMoved) {
     state.map.fitBounds(farmBoundaryPoints().concat(animals.map((animal) => animal.coords)), { padding: [24, 24], maxZoom: 16 });
+    state.mapHasInitialFit = true;
   }
+}
+
+function moveAnimalOnMap(id, coords) {
+  const animal = findAnimal(id);
+  if (!animal) return;
+  animal.coords = clampToFarm(coords);
+  animal.zone = zoneForCoords(animal.coords);
+  animal.updatedAt = Date.now();
+  addEvent("animal.map_move", `${animal.id} reposicionado na Area ${animal.zone} pelo mapa.`);
+  persist();
+  renderAnimals();
+  renderTrackingList();
 }
 
 function markerIcon(status) {
@@ -2140,12 +2171,15 @@ function saveProfile() {
   });
   appData.farm.center = boundaryCenter(appData.farm.boundary);
   fitAnimalsToFarm();
+  state.mapUserMoved = false;
+  state.mapHasInitialFit = false;
   appData.farm.updatedAt = Date.now();
   addNotice("P", "Perfil atualizado", "Dados do usuario e da fazenda foram salvos neste dispositivo.", "Agora");
   addEvent("farm.update", "Dados do usuario e da fazenda atualizados.");
   closeModal();
   persist();
   renderAll();
+  updateMapMarkers();
 }
 
 async function enablePushNotifications() {
