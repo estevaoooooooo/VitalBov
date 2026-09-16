@@ -351,11 +351,12 @@ function normalizeState() {
   appData.farm.updatedAt ||= Date.now();
   appData.farm.boundary = normalizeBoundary(appData.farm.boundary);
   appData.farm.center = boundaryCenter(appData.farm.boundary);
+  const physicalChipOwnerId = baseData.animals.find((item) => item.chip?.enabled)?.chip?.animalId || "VB-219";
   appData.animals = appData.animals.map((animal, index) => {
-    const baseChip = index === 0 ? baseData.animals[0]?.chip : null;
+    const baseChip = animal.id === physicalChipOwnerId ? baseData.animals.find((item) => item.chip?.enabled)?.chip : null;
     return {
       ...animal,
-      chip: baseChip ? { ...animal.chip, ...baseChip, enabled: true, animalId: animal.id } : undefined,
+      chip: baseChip ? { ...baseChip, ...animal.chip, enabled: true, animalId: animal.id } : undefined,
       photo: animal.photo || defaultAnimalPhoto(animal.id),
       coords: clampToFarm(animal.coords || randomInsideFarm("C")),
       zone: animal.zone || zoneForCoords(animal.coords || appData.farm.center),
