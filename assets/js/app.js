@@ -1044,9 +1044,11 @@ function chipTelemetryPanel(animal) {
 
 function startChipRealtime(id) {
   const animal = findAnimal(id);
-  startChipSimulation(id);
+  if (animal && !state.bleCharacteristic) {
+    animal.chip.vitalsSource = "pending";
+    updateChipPanel(animal);
+  }
   if (state.bleCharacteristic && state.bleAnimalId === id) {
-    stopChipSimulation();
     state.activeChipAnimalId = id;
     return;
   }
@@ -1208,13 +1210,14 @@ async function connectChipBluetooth(id) {
 
     state.bleDevice = device;
     state.activeChipAnimalId = id;
-    device.addEventListener("gattserverdisconnected", () => {
-      state.bleCharacteristic = null;
-      state.bleDevice = null;
-      state.bleAnimalId = null;
-      state.bleBuffer = "";
-      const status = $("#chipLiveStatus");
-      if (status) status.textContent = "Bluetooth desconectado.";
+  device.addEventListener("gattserverdisconnected", () => {
+    state.bleCharacteristic = null;
+    state.bleDevice = null;
+    state.bleAnimalId = null;
+    state.bleBuffer = "";
+    stopChipSimulation();
+    const status = $("#chipLiveStatus");
+    if (status) status.textContent = "Bluetooth desconectado.";
     });
 
     if (liveStatus) liveStatus.textContent = "Conectando ao chip...";
@@ -1225,8 +1228,9 @@ async function connectChipBluetooth(id) {
 
     characteristic.addEventListener("characteristicvaluechanged", handleBleTelemetry);
     await characteristic.startNotifications();
+    startChipSimulation(id);
 
-    if (liveStatus) liveStatus.textContent = "Bluetooth selecionado. Aguardando dados dos sensores...";
+    if (liveStatus) liveStatus.textContent = "Bluetooth conectado. Simulando apenas BPM e oxigenacao...";
   } catch (error) {
     const reason = error?.message || "permissao ou dispositivo indisponivel";
     if (liveStatus) liveStatus.textContent = `Bluetooth nao conectado: ${reason}`;
@@ -1299,7 +1303,7 @@ function applyChipTelemetry(animal, telemetry, options = {}) {
   if (spo2Valid) animal.chip.spo2 = Math.round(nextSpo2);
   if (heartRateValid || spo2Valid) {
     animal.chip.vitalsSource = telemetry.simulation ? "simulation" : "real";
-    if (!telemetry.simulation) stopChipSimulation();
+    if (!telemetry.simulation && !state.bleCharacteristic) stopChipSimulation();
   }
   animal.chip.movementScore = numberOrPrevious(telemetry.movementScore, animal.chip.movementScore);
   animal.chip.swayScore = numberOrPrevious(telemetry.swayScore, animal.chip.swayScore);
