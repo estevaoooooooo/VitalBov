@@ -1013,6 +1013,9 @@ function openAnimalDetail(id) {
 
 function chipTelemetryPanel(animal) {
   const chip = animal.chip;
+  const realVitals = chip.vitalsSource === "real";
+  const heartRateValue = realVitals && Number(chip.heartRate) >= 35 ? `${chip.heartRate} bpm` : "--";
+  const spo2Value = realVitals && Number(chip.spo2) >= 70 ? `${chip.spo2}%` : "--";
   return `
     <section class="panel chip-panel">
       <div class="section-title">
@@ -1021,8 +1024,8 @@ function chipTelemetryPanel(animal) {
       </div>
       <div class="detail-metrics">
         <div><span>Animal vinculado</span><strong>${chip.animalId}</strong></div>
-        <div><span>Batimentos</span><strong id="chipHeartRate">${chip.heartRate} bpm</strong></div>
-        <div><span>Oxigenacao</span><strong id="chipSpo2">${chip.spo2}%</strong></div>
+        <div><span>Batimentos</span><strong id="chipHeartRate">${heartRateValue}</strong></div>
+        <div><span>Oxigenacao</span><strong id="chipSpo2">${spo2Value}</strong></div>
         <div><span>Movimento</span><strong id="chipMovement">${chip.movementScore}</strong></div>
         <div><span>Balanceio</span><strong id="chipSway">${chip.swayScore}</strong></div>
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
@@ -1123,8 +1126,9 @@ function updateChipPanel(animal) {
   const heatStatus = $("#chipHeatStatus");
   const liveStatus = $("#chipLiveStatus");
 
-  if (heartRate) heartRate.textContent = `${animal.chip.heartRate} bpm`;
-  if (spo2) spo2.textContent = `${animal.chip.spo2}%`;
+  const realVitals = animal.chip.vitalsSource === "real";
+  if (heartRate) heartRate.textContent = realVitals && Number(animal.chip.heartRate) >= 35 ? `${animal.chip.heartRate} bpm` : "--";
+  if (spo2) spo2.textContent = realVitals && Number(animal.chip.spo2) >= 70 ? `${animal.chip.spo2}%` : "--";
   if (movement) movement.textContent = animal.chip.movementScore;
   if (sway) sway.textContent = animal.chip.swayScore;
   if (heat) heat.textContent = `${animal.chip.heatProbability}%`;
@@ -1253,7 +1257,9 @@ function applyChipTelemetry(animal, telemetry, options = {}) {
     animal.chip.heartRate = Math.round(Number.isFinite(previous) && previous >= 35 ? previous * 0.8 + limited * 0.2 : limited);
   }
   const nextSpo2 = Number(telemetry.spo2);
-  if (Number.isFinite(nextSpo2) && nextSpo2 >= 70 && nextSpo2 <= 100) animal.chip.spo2 = Math.round(nextSpo2);
+  const spo2Valid = Number.isFinite(nextSpo2) && nextSpo2 >= 70 && nextSpo2 <= 100;
+  if (spo2Valid) animal.chip.spo2 = Math.round(nextSpo2);
+  if (heartRateValid || spo2Valid) animal.chip.vitalsSource = "real";
   animal.chip.movementScore = numberOrPrevious(telemetry.movementScore, animal.chip.movementScore);
   animal.chip.swayScore = numberOrPrevious(telemetry.swayScore, animal.chip.swayScore);
   animal.chip.heatProbability = numberOrPrevious(telemetry.heatProbability, animal.chip.heatProbability);

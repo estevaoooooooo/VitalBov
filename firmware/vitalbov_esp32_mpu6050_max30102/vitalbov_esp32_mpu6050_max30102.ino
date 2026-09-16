@@ -40,6 +40,9 @@ bool bpmValid = false;
 float bpmSamples[5] = {0, 0, 0, 0, 0};
 uint8_t bpmSampleCount = 0;
 uint8_t bpmSampleIndex = 0;
+float spo2Samples[5] = {0, 0, 0, 0, 0};
+uint8_t spo2SampleCount = 0;
+uint8_t spo2SampleIndex = 0;
 float oldAccel = 1, oldGyroZ = 0;
 long ir = 0, red = 0;
 bool heatDetected = false;
@@ -151,14 +154,25 @@ void readVitals() {
       }
     }
   }
-  if (red > 0 && ir > 0) spo2 = constrain(110.0f - 25.0f * ((float)red / ir), 70.0f, 100.0f);
+  if (signalGood && red > 1000 && red < ir) {
+    const float ratio = (float)red / (float)ir;
+    if (ratio > 0.05f && ratio < 0.95f) {
+      const float nextSpo2 = constrain(110.0f - 25.0f * ratio, 70.0f, 100.0f);
+      spo2Samples[spo2SampleIndex] = nextSpo2;
+      spo2SampleIndex = (spo2SampleIndex + 1) % 5;
+      if (spo2SampleCount < 5) spo2SampleCount++;
+      float sum = 0;
+      for (uint8_t i = 0; i < spo2SampleCount; i++) sum += spo2Samples[i];
+      spo2 = sum / spo2SampleCount;
+    }
+  }
 }
 
 void notifyTelemetry() {
   if (!bleServer || bleServer->getConnectedCount() == 0 || !bleTelemetry) return;
   String json = "{\"a\":\"" + String(ANIMAL_ID) + "\",\"h\":" + String(bpmValid ? bpm : 0, 0);
   json += ",\"r\":" + String(bpmValid ? 1 : 0);
-  json += ",\"o\":" + String(spo2, 0) + ",\"m\":" + String(movement, 0);
+  json += ",\"o\":" + String(spo2SampleCount >= 5 ? spo2 : 0, 0) + ",\"m\":" + String(movement, 0);
   json += ",\"s\":" + String(sway, 0) + ",\"p\":" + String(heat, 0);
   json += ",\"c\":" + String(heatDetected ? 1 : 0);
   json += ",\"q\":" + String(mpuReady && maxReady ? 1 : 0);
