@@ -1026,7 +1026,7 @@ function chipTelemetryPanel(animal) {
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
         <div><span>Status do cio</span><strong id="chipHeatStatus">${chip.heatDetected ? "Possivel cio" : "Normal"}</strong></div>
       </div>
-      <div class="chip-note">Bluetooth BLE ativo. Simulação somente até chegar uma telemetria real do firmware ${chip.firmware}.</div>
+      <div class="chip-note">BLE real: no Android, abra no Chrome; no computador, use Chrome ou Edge. O app exige HTTPS e o celular precisa estar com o Bluetooth ligado. ${chip.firmware}</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
         <button class="btn btn-primary" data-connect-chip-ble="${animal.id}">Conectar Bluetooth</button>
@@ -1136,11 +1136,20 @@ async function connectChipBluetooth(id) {
   const liveStatus = $("#chipLiveStatus");
 
   if (!navigator.bluetooth) {
-    if (liveStatus) liveStatus.textContent = "Bluetooth do navegador indisponivel. Use Chrome/Edge no Android ou computador.";
+    if (liveStatus) liveStatus.textContent = "Bluetooth indisponivel neste navegador. No Android, abra o endereco no Chrome; no iPhone, use um navegador compativel em HTTPS.";
+    return;
+  }
+
+  if (!window.isSecureContext) {
+    if (liveStatus) liveStatus.textContent = "A conexao Bluetooth exige HTTPS. Abra o endereco oficial do VitalBov, nao um arquivo local.";
     return;
   }
 
   try {
+    if (typeof navigator.bluetooth.getAvailability === "function" && !(await navigator.bluetooth.getAvailability())) {
+      if (liveStatus) liveStatus.textContent = "Bluetooth desligado ou indisponivel no celular. Ative o Bluetooth e tente novamente no Chrome.";
+      return;
+    }
     stopChipRealtime();
     state.bleBuffer = "";
     state.bleAnimalId = id;
@@ -1202,6 +1211,7 @@ function consumeBleText(text) {
       const telemetry = packet.a ? {
         animalId: packet.a,
         heartRate: packet.h,
+        heartRateValid: packet.r !== false && packet.r !== 0,
         spo2: packet.o,
         movementScore: packet.m,
         swayScore: packet.s,
@@ -1214,7 +1224,7 @@ function consumeBleText(text) {
       applyChipTelemetry(animal, telemetry, { silent: true });
       const liveStatus = $("#chipLiveStatus");
       if (liveStatus) liveStatus.textContent = telemetry.mpuReady && telemetry.maxReady
-        ? "Bluetooth conectado. Recebendo dados reais dos sensores."
+        ? (telemetry.heartRateValid ? "Bluetooth conectado. Recebendo dados reais dos sensores." : "Bluetooth conectado. MAX30102 aguardando pulso estavel...")
         : "Bluetooth conectado. Dados reais: verifique MPU6050/MAX30102.";
     } catch {
       const liveStatus = $("#chipLiveStatus");
@@ -1233,13 +1243,20 @@ function applyChipTelemetry(animal, telemetry, options = {}) {
   }
 
   const numberOrPrevious = (value, previous) => Number.isFinite(Number(value)) ? Math.round(Number(value)) : previous;
-  animal.chip.heartRate = numberOrPrevious(telemetry.heartRate, animal.chip.heartRate);
-  animal.chip.spo2 = numberOrPrevious(telemetry.spo2, animal.chip.spo2);
+  const nextHeartRate = Number(telemetry.heartRate);
+  const heartRateValid = telemetry.heartRateValid !== false && nextHeartRate >= 35 && nextHeartRate <= 220;
+  if (heartRateValid) {
+    const previous = Number(animal.chip.heartRate);
+    const limited = Number.isFinite(previous) && previous >= 35 ? Math.max(previous - 25, Math.min(previous + 25, nextHeartRate)) : nextHeartRate;
+    animal.chip.heartRate = Math.round(Number.isFinite(previous) && previous >= 35 ? previous * 0.8 + limited * 0.2 : limited);
+  }
+  const nextSpo2 = Number(telemetry.spo2);
+  if (Number.isFinite(nextSpo2) && nextSpo2 >= 70 && nextSpo2 <= 100) animal.chip.spo2 = Math.round(nextSpo2);
   animal.chip.movementScore = numberOrPrevious(telemetry.movementScore, animal.chip.movementScore);
   animal.chip.swayScore = numberOrPrevious(telemetry.swayScore, animal.chip.swayScore);
   animal.chip.heatProbability = numberOrPrevious(telemetry.heatProbability, animal.chip.heatProbability);
   animal.chip.heatDetected = Boolean(telemetry.heatDetected);
-  animal.chip.signal = telemetry.signal || animal.chip.signal;
+  animal.chip.signal = telemetry.signal || (heartRateValid ? "Estavel" : "Aguardando pulso");
   animal.lastSeen = "Agora";
   animal.updatedAt = Date.now();
 

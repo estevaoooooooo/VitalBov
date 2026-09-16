@@ -210,7 +210,9 @@ window.VITALBOV_DATA = {
     { id: "p9", name: "Kit Coleta e Higiene", category: "Sanidade", price: 74.9, recommended: "Rotina de coleta sem contaminacao", image: "assets/img/product-hygiene-kit.png" },
     { id: "p10", name: "Suplemento para Bezerros", category: "Nutricao", price: 119.9, recommended: "Apoio ao desenvolvimento dos bezerros", image: "assets/img/product-calf-supplement.jpg" },
     { id: "p11", name: "Leitor RFID de Curral", category: "Manejo", price: 679, recommended: "Leitura rapida no manejo", image: "assets/img/product-rfid-reader.jpg" },
-    { id: "p12", name: "Consulta Veterinaria Avulsa", category: "Servicos", price: 149.9, recommended: "Orientacao remota com especialista", image: "assets/img/product-vet-consultation.jpg" }
+    { id: "p12", name: "Consulta Veterinaria Avulsa", category: "Servicos", price: 149.9, recommended: "Orientacao remota com especialista", image: "assets/img/product-vet-consultation.jpg" },
+    { id: "p13", name: "Conserto e Reparo de Equipamentos", category: "Servicos", price: 249.9, recommended: "Manutencao de sensores, leitores e gateways", image: "assets/img/product-generic.svg" },
+    { id: "p14", name: "Instalacao de Equipamentos", category: "Servicos", price: 399.9, recommended: "Configuracao em campo de tags, leitores e gateway", image: "assets/img/product-gateway.svg" }
   ],
   chartData: {
     rumination: { label: "Ruminacao media (min)", values: [425, 438, 431, 454, 448, 466, 452], color: "#577627" },

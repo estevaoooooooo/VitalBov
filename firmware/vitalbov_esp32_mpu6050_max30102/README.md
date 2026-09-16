@@ -41,4 +41,6 @@ Servico: 7b219000-9f52-4f1c-9b45-000000000001
 Telemetria: 7b219001-9f52-4f1c-9b45-000000000002
 ```
 
-No app HTTPS, abra `VB-219 - Estrela`, toque em `Conectar Bluetooth` e selecione `VitalBov-VB-219`. Use Chrome ou Edge com Web Bluetooth. Esta versao compacta nao cria mais a rede `192.168.4.1`.
+No app HTTPS, abra `VB-219 - Estrela`, toque em `Conectar Bluetooth` e selecione `VitalBov-VB-219`. No Android, use o Chrome com o Bluetooth ativado; no computador, use Chrome ou Edge. Esta versao compacta nao cria mais a rede `192.168.4.1`.
+
+O firmware so publica batimentos depois de encontrar tres pulsos validos e usa mediana de cinco intervalos com suavizacao. Assim, perda momentanea de contato no MAX30102 nao vira `0` ou um valor pequeno no aplicativo. O sensor precisa ficar firme contra uma regiao com boa perfusao; sem pulso estavel, o app conserva a ultima leitura valida e informa que esta aguardando sinal.

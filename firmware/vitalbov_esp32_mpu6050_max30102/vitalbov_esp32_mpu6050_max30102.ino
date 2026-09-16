@@ -36,6 +36,10 @@ float ax = 0, ay = 0, az = 0;
 float gx = 0, gy = 0, gz = 0;
 float movement = 0, sway = 0, heat = 0;
 float bpm = 0, spo2 = 0;
+bool bpmValid = false;
+float bpmSamples[5] = {0, 0, 0, 0, 0};
+uint8_t bpmSampleCount = 0;
+uint8_t bpmSampleIndex = 0;
 float oldAccel = 1, oldGyroZ = 0;
 long ir = 0, red = 0;
 bool heatDetected = false;
@@ -122,13 +126,29 @@ void readVitals() {
   lastVital = millis();
   ir = maxSensor.getIR();
   red = maxSensor.getRed();
-  if (checkForBeat(ir)) {
+  const bool signalGood = ir > 10000;
+  if (!signalGood && millis() - lastBeat > 5000) bpmValid = false;
+  if (signalGood && checkForBeat(ir)) {
     uint32_t now = millis();
     uint32_t delta = now - lastBeat;
     lastBeat = now;
-    if (delta > 300 && delta < 2000) {
+    if (delta > 270 && delta < 1700) {
       float nextBpm = 60000.0f / delta;
-      if (nextBpm > 30 && nextBpm < 220) bpm = bpm < 1 ? nextBpm : bpm * 0.85f + nextBpm * 0.15f;
+      if (nextBpm >= 35 && nextBpm <= 220) {
+        bpmSamples[bpmSampleIndex] = nextBpm;
+        bpmSampleIndex = (bpmSampleIndex + 1) % 5;
+        if (bpmSampleCount < 5) bpmSampleCount++;
+        float sorted[5];
+        for (uint8_t i = 0; i < bpmSampleCount; i++) sorted[i] = bpmSamples[i];
+        for (uint8_t i = 0; i < bpmSampleCount; i++) {
+          for (uint8_t j = i + 1; j < bpmSampleCount; j++) {
+            if (sorted[j] < sorted[i]) { float swapValue = sorted[i]; sorted[i] = sorted[j]; sorted[j] = swapValue; }
+          }
+        }
+        const float median = sorted[bpmSampleCount / 2];
+        bpm = bpmValid ? bpm * 0.82f + median * 0.18f : median;
+        bpmValid = bpmSampleCount >= 3;
+      }
     }
   }
   if (red > 0 && ir > 0) spo2 = constrain(110.0f - 25.0f * ((float)red / ir), 70.0f, 100.0f);
@@ -136,7 +156,8 @@ void readVitals() {
 
 void notifyTelemetry() {
   if (!bleServer || bleServer->getConnectedCount() == 0 || !bleTelemetry) return;
-  String json = "{\"a\":\"" + String(ANIMAL_ID) + "\",\"h\":" + String(bpm, 0);
+  String json = "{\"a\":\"" + String(ANIMAL_ID) + "\",\"h\":" + String(bpmValid ? bpm : 0, 0);
+  json += ",\"r\":" + String(bpmValid ? 1 : 0);
   json += ",\"o\":" + String(spo2, 0) + ",\"m\":" + String(movement, 0);
   json += ",\"s\":" + String(sway, 0) + ",\"p\":" + String(heat, 0);
   json += ",\"c\":" + String(heatDetected ? 1 : 0);
