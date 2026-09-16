@@ -287,5 +287,24 @@
 
     <script src="assets/js/data.js?v=real-products-v2"></script>
     <script src="assets/js/app.js?v=real-products-v2"></script>
+    <script>
+      (() => {
+        const releaseApp = () => {
+          const onboarding = document.getElementById("onboarding");
+          const mainApp = document.getElementById("mainApp");
+          if (!onboarding || !mainApp) return;
+          onboarding.classList.remove("active");
+          document.body.classList.remove("onboarding-open");
+          mainApp.classList.add("boot-fallback-visible");
+        };
+        const timer = window.setTimeout(() => {
+          if (!window.__VITALBOV_READY__) releaseApp();
+        }, 6000);
+        window.addEventListener("vitalbov:ready", () => {
+          window.__VITALBOV_READY__ = true;
+          window.clearTimeout(timer);
+        }, { once: true });
+      })();
+    </script>
   </body>
 </html>

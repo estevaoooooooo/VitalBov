@@ -105,6 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   openView("home");
   startTelemetry();
   registerServiceWorker();
+  window.dispatchEvent(new Event("vitalbov:ready"));
 });
 
 function bindEvents() {
