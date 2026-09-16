@@ -72,6 +72,7 @@ const state = {
   farmEditorActivePoint: "A",
   telemetryTimer: null,
   chipRealtimeTimer: null,
+  chipSimulationTimer: null,
   activeChipAnimalId: null,
   bleDevice: null,
   bleCharacteristic: null,
@@ -1013,9 +1014,9 @@ function openAnimalDetail(id) {
 
 function chipTelemetryPanel(animal) {
   const chip = animal.chip;
-  const realVitals = chip.vitalsSource === "real";
-  const heartRateValue = realVitals && Number(chip.heartRate) >= 35 ? `${chip.heartRate} bpm` : "--";
-  const spo2Value = realVitals && Number(chip.spo2) >= 70 ? `${chip.spo2}%` : "--";
+  const vitalsReady = chip.vitalsSource === "real" || chip.vitalsSource === "simulation";
+  const heartRateValue = vitalsReady && Number(chip.heartRate) >= 35 ? `${chip.heartRate} bpm` : "--";
+  const spo2Value = vitalsReady && Number(chip.spo2) >= 70 ? `${chip.spo2}%` : "--";
   return `
     <section class="panel chip-panel">
       <div class="section-title">
@@ -1031,7 +1032,7 @@ function chipTelemetryPanel(animal) {
         <div><span>Prob. de cio</span><strong id="chipHeat">${chip.heatProbability}%</strong></div>
         <div><span>Status do cio</span><strong id="chipHeatStatus">${chip.heatDetected ? "Possivel cio" : "Normal"}</strong></div>
       </div>
-      <div class="chip-note">BLE real: no Android, abra no Chrome; no computador, use Chrome ou Edge. O app exige HTTPS e o celular precisa estar com o Bluetooth ligado. ${chip.firmware}</div>
+      <div class="chip-note">${chip.vitalsSource === "simulation" ? "Simulacao MAX30102 ativa: dados demonstrativos, nao sao leitura do sensor." : "BLE real: no Android, abra no Chrome; no computador, use Chrome ou Edge. O app exige HTTPS e o celular precisa estar com o Bluetooth ligado."} ${chip.firmware}</div>
       <div class="chip-live-status" id="chipLiveStatus">Aguardando leitura do chip...</div>
       <div class="chip-actions">
         <button class="btn btn-primary" data-connect-chip-ble="${animal.id}">Conectar Bluetooth</button>
@@ -1043,7 +1044,9 @@ function chipTelemetryPanel(animal) {
 
 function startChipRealtime(id) {
   const animal = findAnimal(id);
+  startChipSimulation(id);
   if (state.bleCharacteristic && state.bleAnimalId === id) {
+    stopChipSimulation();
     state.activeChipAnimalId = id;
     return;
   }
@@ -1063,7 +1066,40 @@ function startChipRealtime(id) {
 function stopChipRealtime() {
   if (state.chipRealtimeTimer) clearInterval(state.chipRealtimeTimer);
   state.chipRealtimeTimer = null;
+  stopChipSimulation();
   state.activeChipAnimalId = null;
+}
+
+function startChipSimulation(id) {
+  stopChipSimulation();
+  const tick = () => {
+    const animal = findAnimal(id);
+    if (!animal?.chip?.enabled || state.bleCharacteristic) return;
+    const phase = Date.now() / 1800;
+    const heartRate = Math.round(70 + Math.sin(phase) * 5 + Math.sin(phase * 0.37) * 2);
+    const spo2 = Math.round(97 + Math.sin(phase * 0.42) * 1);
+    applyChipTelemetry(animal, {
+      animalId: id,
+      heartRate,
+      heartRateValid: true,
+      spo2,
+      movementScore: animal.chip.movementScore,
+      swayScore: animal.chip.swayScore,
+      heatProbability: animal.chip.heatProbability,
+      heatDetected: animal.chip.heatDetected,
+      signal: "Simulado",
+      simulation: true
+    }, { silent: true });
+    const liveStatus = $("#chipLiveStatus");
+    if (liveStatus) liveStatus.textContent = "Simulacao MAX30102 ativa. Aguardando leitura real...";
+  };
+  tick();
+  state.chipSimulationTimer = setInterval(tick, 2000);
+}
+
+function stopChipSimulation() {
+  if (state.chipSimulationTimer) clearInterval(state.chipSimulationTimer);
+  state.chipSimulationTimer = null;
 }
 
 async function readChipTelemetry(id, options = {}) {
@@ -1126,14 +1162,16 @@ function updateChipPanel(animal) {
   const heatStatus = $("#chipHeatStatus");
   const liveStatus = $("#chipLiveStatus");
 
-  const realVitals = animal.chip.vitalsSource === "real";
-  if (heartRate) heartRate.textContent = realVitals && Number(animal.chip.heartRate) >= 35 ? `${animal.chip.heartRate} bpm` : "--";
-  if (spo2) spo2.textContent = realVitals && Number(animal.chip.spo2) >= 70 ? `${animal.chip.spo2}%` : "--";
+  const vitalsReady = animal.chip.vitalsSource === "real" || animal.chip.vitalsSource === "simulation";
+  if (heartRate) heartRate.textContent = vitalsReady && Number(animal.chip.heartRate) >= 35 ? `${animal.chip.heartRate} bpm` : "--";
+  if (spo2) spo2.textContent = vitalsReady && Number(animal.chip.spo2) >= 70 ? `${animal.chip.spo2}%` : "--";
   if (movement) movement.textContent = animal.chip.movementScore;
   if (sway) sway.textContent = animal.chip.swayScore;
   if (heat) heat.textContent = `${animal.chip.heatProbability}%`;
   if (heatStatus) heatStatus.textContent = animal.chip.heatDetected ? "Possivel cio" : "Normal";
-  if (liveStatus) liveStatus.textContent = `Atualizado agora para ${animal.id}.`;
+  if (liveStatus) liveStatus.textContent = animal.chip.vitalsSource === "simulation"
+    ? "Simulacao MAX30102 ativa. Aguardando leitura real..."
+    : `Atualizado agora para ${animal.id}.`;
 }
 
 async function connectChipBluetooth(id) {
@@ -1259,7 +1297,10 @@ function applyChipTelemetry(animal, telemetry, options = {}) {
   const nextSpo2 = Number(telemetry.spo2);
   const spo2Valid = Number.isFinite(nextSpo2) && nextSpo2 >= 70 && nextSpo2 <= 100;
   if (spo2Valid) animal.chip.spo2 = Math.round(nextSpo2);
-  if (heartRateValid || spo2Valid) animal.chip.vitalsSource = "real";
+  if (heartRateValid || spo2Valid) {
+    animal.chip.vitalsSource = telemetry.simulation ? "simulation" : "real";
+    if (!telemetry.simulation) stopChipSimulation();
+  }
   animal.chip.movementScore = numberOrPrevious(telemetry.movementScore, animal.chip.movementScore);
   animal.chip.swayScore = numberOrPrevious(telemetry.swayScore, animal.chip.swayScore);
   animal.chip.heatProbability = numberOrPrevious(telemetry.heatProbability, animal.chip.heatProbability);
