@@ -1076,7 +1076,7 @@ function startChipSimulation(id) {
   stopChipSimulation();
   const tick = () => {
     const animal = findAnimal(id);
-    if (!animal?.chip?.enabled || state.bleCharacteristic) return;
+    if (!animal?.chip?.enabled || !state.bleCharacteristic || state.bleAnimalId !== id) return;
     const phase = Date.now() / 1800;
     const heartRate = Math.round(70 + Math.sin(phase) * 5 + Math.sin(phase * 0.37) * 2);
     const spo2 = Math.round(97 + Math.sin(phase * 0.42) * 1);
